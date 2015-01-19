@@ -46,6 +46,8 @@ public final class SqlBrite implements Closeable {
   private static final Observable<String> INITIAL_TRIGGER = BehaviorSubject.create("<initial>");
 
   private final SQLiteOpenHelper helper;
+
+  // Read and write guarded by lock on this instance.
   private final Map<String, PublishSubject<String>> tableTriggers = new LinkedHashMap<>();
 
   // Read and write guarded by 'this'. Lazily initialized. Use methods to access.
@@ -86,7 +88,7 @@ public final class SqlBrite implements Closeable {
 
   private Set<Observable<String>> getTableTriggers(Iterable<String> tables) {
     Set<Observable<String>> triggers = new LinkedHashSet<>();
-    synchronized (this) {
+    synchronized (tableTriggers) {
       for (String table : tables) {
         PublishSubject<String> tableTrigger = tableTriggers.get(table);
         if (tableTrigger == null) {
@@ -105,7 +107,7 @@ public final class SqlBrite implements Closeable {
     if (DEBUG) log("TRIGGER %s", table);
 
     PublishSubject<String> tableTrigger;
-    synchronized (this) {
+    synchronized (tableTriggers) {
       tableTrigger = tableTriggers.get(table);
     }
     if (tableTrigger != null) {
