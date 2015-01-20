@@ -82,15 +82,14 @@ public final class SqlBrite implements Closeable {
     return db;
   }
 
-  private void sendTableTrigger(String table) {
+  private void sendTableTrigger(Set<String> tables) {
     Transaction transaction = transactions.get();
     if (transaction != null) {
-      transaction.triggers.add(table);
-      return;
+      transaction.triggers.addAll(tables);
+    } else {
+      if (DEBUG) log("TRIGGER %s", tables);
+      trigger.onNext(tables);
     }
-
-    if (DEBUG) log("TRIGGER %s", table);
-    trigger.onNext(Collections.singleton(table));
   }
 
   /**
@@ -294,7 +293,7 @@ public final class SqlBrite implements Closeable {
 
     if (rowId != -1) {
       // Only send a table trigger if the insert was successful.
-      sendTableTrigger(table);
+      sendTableTrigger(Collections.singleton(table));
     }
     return rowId;
   }
@@ -319,7 +318,7 @@ public final class SqlBrite implements Closeable {
 
     if (rows > 0) {
       // Only send a table trigger if rows were affected.
-      sendTableTrigger(table);
+      sendTableTrigger(Collections.singleton(table));
     }
     return rows;
   }
@@ -357,7 +356,7 @@ public final class SqlBrite implements Closeable {
 
     if (rows > 0) {
       // Only send a table trigger if rows were affected.
-      sendTableTrigger(table);
+      sendTableTrigger(Collections.singleton(table));
     }
     return rows;
   }
@@ -410,12 +409,7 @@ public final class SqlBrite implements Closeable {
     }
 
     @Override public void onCommit() {
-      if (parent != null) {
-        parent.triggers.addAll(triggers);
-      } else {
-        if (DEBUG) log("TRIGGER %s", triggers);
-        trigger.onNext(triggers);
-      }
+      sendTableTrigger(triggers);
     }
 
     @Override public void onRollback() {
