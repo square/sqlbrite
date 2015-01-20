@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteTransactionListener;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -13,14 +14,10 @@ import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Set;
 import rx.Observable;
-import rx.Subscriber;
 import rx.functions.Func1;
-import rx.subjects.BehaviorSubject;
 import rx.subjects.PublishSubject;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ABORT;
@@ -42,13 +39,12 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
  * method} for more information on that behavior.
  */
 public final class SqlBrite implements Closeable {
-  /** Emits a single item but never completes. */
-  private static final Observable<String> INITIAL_TRIGGER = BehaviorSubject.create("<initial>");
+  private static final Set<String> INITIAL_TRIGGER = Collections.singleton("<initial>");
 
   private final SQLiteOpenHelper helper;
-
-  // Read and write guarded by lock on this instance.
-  private final Map<String, PublishSubject<String>> tableTriggers = new LinkedHashMap<>();
+  private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
+  /** Publishes sets of tables which have changed. */
+  private final PublishSubject<Set<String>> trigger = PublishSubject.create();
 
   // Read and write guarded by 'this'. Lazily initialized. Use methods to access.
   private SQLiteDatabase readableDatabase;
@@ -86,33 +82,80 @@ public final class SqlBrite implements Closeable {
     return db;
   }
 
-  private Set<Observable<String>> getTableTriggers(Iterable<String> tables) {
-    Set<Observable<String>> triggers = new LinkedHashSet<>();
-    synchronized (tableTriggers) {
-      for (String table : tables) {
-        PublishSubject<String> tableTrigger = tableTriggers.get(table);
-        if (tableTrigger == null) {
-          tableTrigger = PublishSubject.create();
-          tableTriggers.put(table, tableTrigger);
-        }
-        triggers.add(tableTrigger);
-      }
+  private void sendTableTrigger(String table) {
+    Transaction transaction = transactions.get();
+    if (transaction != null) {
+      transaction.triggers.add(table);
+      return;
     }
 
-    triggers.add(INITIAL_TRIGGER);
-    return triggers;
+    if (DEBUG) log("TRIGGER %s", table);
+    trigger.onNext(Collections.singleton(table));
   }
 
-  private void sendTableTrigger(String table) {
-    if (DEBUG) log("TRIGGER %s", table);
+  /**
+   * Begin a transaction for this thread.
+   * <p>
+   * Transactions may nest. If the transaction is not in progress, then a database connection is
+   * obtained and a new transaction is started. Otherwise, a nested transaction is started.
+   * <p>
+   * Each call to {@code beginTransaction} must be matched exactly by a call to
+   * {@link #endTransaction}. To mark a transaction as successful, call
+   * {@link #setTransactionSuccessful} before calling {@link #endTransaction}. If the transaction
+   * is not successful, or if any of its nested transactions were not successful, then the entire
+   * transaction will be rolled back when the outermost transaction is ended.
+   * <p>
+   * Transactions queue up all query notifications until they have been applied.
+   * <p>
+   * Here is the standard idiom for transactions:
+   *
+   * <pre>{@code
+   * db.beginTransaction();
+   * try {
+   *   ...
+   *   db.setTransactionSuccessful();
+   * } finally {
+   *   db.endTransaction();
+   * }
+   * }</pre>
+   *
+   * @see SQLiteDatabase#beginTransaction()
+   */
+  public void beginTransaction() {
+    Transaction transaction = new Transaction(transactions.get());
+    transactions.set(transaction);
+    if (DEBUG) log("TXN BEGIN %s", transaction);
+    getWriteableDatabase().beginTransactionWithListener(transaction);
+  }
 
-    PublishSubject<String> tableTrigger;
-    synchronized (tableTriggers) {
-      tableTrigger = tableTriggers.get(table);
+  /**
+   * Marks the current transaction as successful. Do not do any more database work between
+   * calling this and calling {@link #endTransaction()}. Do as little non-database work as possible
+   * in that situation too. If any errors are encountered between this and
+   * {@link #endTransaction()} the transaction will still be committed.
+   *
+   * @see SQLiteDatabase#setTransactionSuccessful()
+   */
+  public void setTransactionSuccessful() {
+    if (DEBUG) log("TXN SUCCESS %s", transactions.get());
+    getWriteableDatabase().setTransactionSuccessful();
+  }
+
+  /**
+   * End a transaction. See {@link #beginTransaction()} for notes about how to use this and when
+   * transactions are committed and rolled back.
+   *
+   * @see SQLiteDatabase#endTransaction()
+   */
+  public void endTransaction() {
+    Transaction transaction = transactions.get();
+    if (transaction == null) {
+      throw new IllegalStateException("No in-progress transaction.");
     }
-    if (tableTrigger != null) {
-      tableTrigger.onNext(table);
-    }
+    Transaction newTransaction = transaction.parent;
+    transactions.set(newTransaction);
+    if (DEBUG) log("TXN END %s", transaction);
+    getWriteableDatabase().endTransaction();
   }
 
   /**
@@ -140,9 +183,18 @@ public final class SqlBrite implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  public Observable<Cursor> createQuery(@NonNull String table, @NonNull String sql,
+  public Observable<Cursor> createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
-    return createQuery(Collections.singleton(table), sql, args);
+    Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
+      @Override public Boolean call(Set<String> triggers) {
+        return triggers.contains(table);
+      }
+
+      @Override public String toString() {
+        return table;
+      }
+    };
+    return createQuery(tableFilter, sql, args);
   }
 
   /**
@@ -159,23 +211,59 @@ public final class SqlBrite implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  public Observable<Cursor> createQuery(@NonNull final Iterable<String> tables,
-      @NonNull final String sql, @NonNull final String... args) {
-    return Observable.create(new Observable.OnSubscribe<Cursor>() {
-      @Override public void call(Subscriber<? super Cursor> subscriber) {
-        Observable.merge(getTableTriggers(tables))
-            .map(new Func1<String, Cursor>() {
-              @Override public Cursor call(String trigger) {
-                if (DEBUG) {
-                  log("QUERY\n  trigger: %s\n  tables: %s\n  sql: %s\n  args: %s", trigger, tables,
-                      sql, Arrays.toString(args));
-                }
-                return getReadableDatabase().rawQuery(sql, args);
-              }
-            })
-            .subscribe(subscriber);
+  public Observable<Cursor> createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
+      @NonNull String... args) {
+    Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
+      @Override public Boolean call(Set<String> triggers) {
+        for (String table : tables) {
+          if (triggers.contains(table)) {
+            return true;
+          }
+        }
+        return false;
       }
-    });
+
+      @Override public String toString() {
+        return tables.toString();
+      }
+    };
+    return createQuery(tableFilter, sql, args);
+  }
+
+  private Observable<Cursor> createQuery(final Func1<Set<String>, Boolean> tableFilter,
+      final String sql, final String... args) {
+    if (transactions.get() != null) {
+      throw new IllegalStateException("Cannot create observable query in transaction. "
+          + "Use query() for a query inside a transaction.");
+    }
+
+    return trigger //
+        .filter(tableFilter)
+        .startWith(INITIAL_TRIGGER)
+        .map(new Func1<Set<String>, Cursor>() {
+          @Override public Cursor call(Set<String> trigger) {
+            if (transactions.get() != null) {
+              throw new IllegalStateException(
+                  "Cannot subscribe to observable query in a transaction.");
+            }
+
+            if (DEBUG) {
+              log("QUERY\n  trigger: %s\n  tables: %s\n  sql: %s\n  args: %s", trigger, tableFilter,
+                  sql, Arrays.toString(args));
+            }
+            return getReadableDatabase().rawQuery(sql, args);
+          }
+        });
+  }
+
+  /**
+   * Runs the provided SQL and returns a {@link Cursor} over the result set.
+   *
+   * @see SQLiteDatabase#rawQuery(String, String[])
+   */
+  public Cursor query(@NonNull String sql, @NonNull String... args) {
+    if (DEBUG) log("QUERY\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
+    return getReadableDatabase().rawQuery(sql, args);
   }
 
   /**
@@ -307,6 +395,35 @@ public final class SqlBrite implements Closeable {
         return "rollback";
       default:
         return "unknown (" + conflictAlgorithm + ')';
+    }
+  }
+
+  private final class Transaction implements SQLiteTransactionListener {
+    final Transaction parent;
+    final Set<String> triggers = new LinkedHashSet<>();
+
+    Transaction(Transaction parent) {
+      this.parent = parent;
+    }
+
+    @Override public void onBegin() {
+    }
+
+    @Override public void onCommit() {
+      if (parent != null) {
+        parent.triggers.addAll(triggers);
+      } else {
+        if (DEBUG) log("TRIGGER %s", triggers);
+        trigger.onNext(triggers);
+      }
+    }
+
+    @Override public void onRollback() {
+    }
+
+    @Override public String toString() {
+      String name = String.format("%08x", System.identityHashCode(this)).replace(' ', '0');
+      return parent == null ? name : name + " [" + parent.toString() + ']';
     }
   }
 }

@@ -66,7 +66,14 @@ final class RecordingObserver implements Observer<Cursor> {
     }
 
     public void isExhausted() {
-      assertThat(cursor.moveToNext()).named("more than " + row + " rows").isFalse();
+      if (cursor.moveToNext()) {
+        StringBuilder data = new StringBuilder();
+        for (int i = 0; i < cursor.getColumnCount(); i++) {
+          if (i > 0) data.append(", ");
+          data.append(cursor.getString(i));
+        }
+        throw new AssertionError("Expected no more rows but was: " + data);
+      }
       cursor.close();
     }
   }
