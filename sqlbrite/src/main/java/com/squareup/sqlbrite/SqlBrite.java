@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -41,7 +42,66 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 public final class SqlBrite implements Closeable {
   private static final Set<String> INITIAL_TRIGGER = Collections.singleton("<initial>");
 
+  /** Create an instance around the specified {@code helper} using appropriate defaults. */
+  public static SqlBrite create(@NonNull SQLiteOpenHelper helper) {
+    return builder(helper).build();
+  }
+
+  /** Build a new instance around the specified {@code helper}. */
+  public static Builder builder(@NonNull SQLiteOpenHelper helper) {
+    return new Builder(helper);
+  }
+
+  public static final class Builder {
+    private final SQLiteOpenHelper helper;
+    private boolean debugLogging;
+    private long throttleAmount = 500;
+    private TimeUnit throttleUnit = TimeUnit.MILLISECONDS;
+
+    private Builder(SQLiteOpenHelper helper) {
+      this.helper = helper;
+    }
+
+    /**
+     * Control whether debug logs for transactions, queries, and notifications are recorded.
+     * <p>
+     * <b>Note:</b> This only has an effect in debug builds. Regardless of this value, this class
+     * will <em>never</em> log in a release build.
+     * <p>
+     * Default: {@code false}
+     */
+    public Builder debugLogging(boolean enabled) {
+      debugLogging = enabled;
+      return this;
+    }
+
+    /**
+     * Throttle query notifications after the initial result. This value will prevent your
+     * subscriber from being called rapidly when multiple database interactions modify data.
+     * <p>
+     * <b>Note:</b> This feature means that {@linkplain #debugLogging debug logs} will only show
+     * the most recent trigger for a query.
+     * <p>
+     * Default: 500 milliseconds.
+     */
+    public Builder throttle(long amount, TimeUnit unit) {
+      if (amount < 0) throw new IllegalArgumentException("amount < 0");
+      if (unit == null) throw new NullPointerException("unit == null");
+      throttleAmount = amount;
+      throttleUnit = unit;
+      return this;
+    }
+
+    public SqlBrite build() {
+      return new SqlBrite(this);
+    }
+  }
+
   private final SQLiteOpenHelper helper;
+  private final boolean debugLogging;
+  private final long throttleAmount;
+  private final TimeUnit throttleUnit;
+
   private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
   /** Publishes sets of tables which have changed. */
   private final PublishSubject<Set<String>> trigger = PublishSubject.create();
@@ -50,8 +110,11 @@ public final class SqlBrite implements Closeable {
   private SQLiteDatabase readableDatabase;
   private SQLiteDatabase writeableDatabase;
 
-  public SqlBrite(@NonNull SQLiteOpenHelper helper) {
-    this.helper = helper;
+  private SqlBrite(Builder builder) {
+    helper = builder.helper;
+    debugLogging = builder.debugLogging;
+    throttleAmount = builder.throttleAmount;
+    throttleUnit = builder.throttleUnit;
   }
 
   private SQLiteDatabase getReadableDatabase() {
@@ -237,8 +300,9 @@ public final class SqlBrite implements Closeable {
     }
 
     return trigger //
-        .filter(tableFilter)
-        .startWith(INITIAL_TRIGGER)
+        .filter(tableFilter) // Only trigger on tables we care about.
+        .throttleLast(throttleAmount, throttleUnit) // Ensure triggers don't spam us.
+        .startWith(INITIAL_TRIGGER) // Immediately execute the query for initial value.
         .map(new Func1<Set<String>, Cursor>() {
           @Override public Cursor call(Set<String> trigger) {
             if (transactions.get() != null) {
@@ -373,9 +437,11 @@ public final class SqlBrite implements Closeable {
   public @interface ConflictAlgorithm {
   }
 
-  private static void log(String message, Object... args) {
-    if (args.length > 0) message = String.format(message, args);
-    Log.d("SqlBrite", message);
+  private void log(String message, Object... args) {
+    if (debugLogging) {
+      if (args.length > 0) message = String.format(message, args);
+      Log.d("SqlBrite", message);
+    }
   }
 
   private static String conflictString(@ConflictAlgorithm int conflictAlgorithm) {

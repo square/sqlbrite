@@ -2,17 +2,18 @@ package com.squareup.sqlbrite;
 
 import android.database.Cursor;
 import android.util.Log;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 import rx.Observer;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 final class RecordingObserver implements Observer<Cursor> {
   private static final Object COMPLETED = "<completed>";
   private static final String TAG = RecordingObserver.class.getSimpleName();
 
-  private final Deque<Object> events = new ArrayDeque<>();
+  private final BlockingDeque<Object> events = new LinkedBlockingDeque<>();
 
   @Override public void onCompleted() {
     Log.d(TAG, "onCompleted");
@@ -29,14 +30,26 @@ final class RecordingObserver implements Observer<Cursor> {
     events.add(value);
   }
 
+  private Object takeEvent() {
+    try {
+      Object item = events.pollFirst(1, SECONDS);
+      if (item == null) {
+        throw new AssertionError("Timeout expired waiting for item.");
+      }
+      return item;
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public CursorAssert assertCursor() {
-    Object event = events.pollFirst();
+    Object event = takeEvent();
     assertThat(event).isInstanceOf(Cursor.class);
     return new CursorAssert((Cursor) event);
   }
 
   public void assertError(String expected) {
-    Object event = events.removeFirst();
+    Object event = takeEvent();
     assertThat(event).isInstanceOf(Throwable.class);
     assertThat((Throwable) event).hasMessage(expected);
   }
