@@ -29,6 +29,12 @@ android {
     targetCompatibility JavaVersion.VERSION_1_7
   }
 
+  buildTypes {
+    debug {
+      testCoverageEnabled true
+    }
+  }
+
   packagingOptions {
     exclude 'LICENSE.txt'
   }

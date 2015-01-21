@@ -32,6 +32,8 @@ import static com.squareup.sqlbrite.TestDb.TABLE_MANAGER;
 import static com.squareup.sqlbrite.TestDb.employee;
 import static com.squareup.sqlbrite.TestDb.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
 public final class SqlBriteTest {
@@ -68,6 +70,22 @@ public final class SqlBriteTest {
   @Test public void closePropagates() throws IOException {
     db.close();
     assertThat(real.isOpen()).isFalse();
+  }
+
+  @Test public void invalidThrottleValues() {
+    SqlBrite.Builder builder = SqlBrite.builder(helper);
+    try {
+      builder.throttle(-1, SECONDS);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage()).isEqualTo("amount < 0");
+    }
+    try {
+      builder.throttle(1, null);
+      fail();
+    } catch (NullPointerException e) {
+      assertThat(e.getMessage()).isEqualTo("unit == null");
+    }
   }
 
   @Test public void query() {
@@ -360,6 +378,7 @@ public final class SqlBriteTest {
     db.beginTransaction();
     try {
       db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
+      fail();
     } catch (IllegalStateException e) {
       assertThat(e.getMessage()).startsWith("Cannot create observable query in transaction.");
     }
@@ -371,6 +390,15 @@ public final class SqlBriteTest {
     db.beginTransaction();
     query.subscribe(o);
     o.assertError("Cannot subscribe to observable query in a transaction.");
+  }
+
+  @Test public void endTransactionWithNoBeginFails() {
+    try {
+      db.endTransaction();
+      fail();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage()).isEqualTo("Not in transaction.");
+    }
   }
 
   @Test public void querySubscribedToDuringTransactionOnDifferentThread()

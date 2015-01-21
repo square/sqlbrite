@@ -212,7 +212,7 @@ public final class SqlBrite implements Closeable {
   public void endTransaction() {
     Transaction transaction = transactions.get();
     if (transaction == null) {
-      throw new IllegalStateException("No in-progress transaction.");
+      throw new IllegalStateException("Not in transaction.");
     }
     Transaction newTransaction = transaction.parent;
     transactions.set(newTransaction);
