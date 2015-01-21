@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -141,7 +142,47 @@ public final class SqlBriteTest {
         .isExhausted();
 
     long tookNs = System.nanoTime() - startNs;
-    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isGreaterThan(499L);
+    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.closed(500L, 525L));
+  }
+
+  @Test public void queryObservesInsertCustomThrottle() {
+    db = SqlBrite.builder(helper)
+        .throttle(200, MILLISECONDS)
+        .build();
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    long startNs = System.nanoTime();
+
+    // Shotgun 10 inserts which will cause 10 triggers. DO NOT DO THIS IRL! Use a transaction!
+    for (int i = 0; i < 10; i++) {
+      db.insert(TABLE_EMPLOYEE, employee("john" + i, "John Johnson " + i));
+    }
+
+    // Only one trigger should have been observed.
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("john0", "John Johnson 0")
+        .hasRow("john1", "John Johnson 1")
+        .hasRow("john2", "John Johnson 2")
+        .hasRow("john3", "John Johnson 3")
+        .hasRow("john4", "John Johnson 4")
+        .hasRow("john5", "John Johnson 5")
+        .hasRow("john6", "John Johnson 6")
+        .hasRow("john7", "John Johnson 7")
+        .hasRow("john8", "John Johnson 8")
+        .hasRow("john9", "John Johnson 9")
+        .isExhausted();
+
+    long tookNs = System.nanoTime() - startNs;
+    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.closed(200L, 225L));
   }
 
   @Test public void queryNotNotifiedWhenInsertFails() {
