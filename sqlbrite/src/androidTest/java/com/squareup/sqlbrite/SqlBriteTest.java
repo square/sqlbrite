@@ -3,6 +3,7 @@ package com.squareup.sqlbrite;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import com.google.common.collect.Range;
@@ -99,7 +100,7 @@ public final class SqlBriteTest {
 
   @Test public void badQueryCallsError() {
     db.createQuery(TABLE_EMPLOYEE, "SELECT * FROM missing").subscribe(o);
-    o.assertError("no such table: missing (code 1): , while compiling: SELECT * FROM missing");
+    o.assertErrorContains("no such table: missing");
   }
 
   @Test public void queryWithArgs() {
@@ -389,7 +390,7 @@ public final class SqlBriteTest {
 
     db.beginTransaction();
     query.subscribe(o);
-    o.assertError("Cannot subscribe to observable query in a transaction.");
+    o.assertErrorContains("Cannot subscribe to observable query in a transaction.");
   }
 
   @Test public void endTransactionWithNoBeginFails() {
@@ -592,6 +593,42 @@ public final class SqlBriteTest {
       db.endTransaction();
     }
     o.assertNoMoreEvents();
+  }
+
+  @Test public void badQueryThrows() {
+    try {
+      db.query("SELECT * FROM missing");
+      fail();
+    } catch (SQLiteException e) {
+      assertThat(e.getMessage()).contains("no such table: missing");
+    }
+  }
+
+  @Test public void badInsertThrows() {
+    try {
+      db.insert("missing", employee("john", "John Johnson"));
+      fail();
+    } catch (SQLiteException e) {
+      assertThat(e.getMessage()).contains("no such table: missing");
+    }
+  }
+
+  @Test public void badUpdateThrows() {
+    try {
+      db.update("missing", employee("john", "John Johnson"), "1");
+      fail();
+    } catch (SQLiteException e) {
+      assertThat(e.getMessage()).contains("no such table: missing");
+    }
+  }
+
+  @Test public void badDeleteThrows() {
+    try {
+      db.delete("missing", "1");
+      fail();
+    } catch (SQLiteException e) {
+      assertThat(e.getMessage()).contains("no such table: missing");
+    }
   }
 
   private static CursorAssert assertCursor(Cursor cursor) {

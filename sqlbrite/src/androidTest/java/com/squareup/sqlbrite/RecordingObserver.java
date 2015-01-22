@@ -48,10 +48,10 @@ final class RecordingObserver implements Observer<Cursor> {
     return new CursorAssert((Cursor) event);
   }
 
-  public void assertError(String expected) {
+  public void assertErrorContains(String expected) {
     Object event = takeEvent();
     assertThat(event).isInstanceOf(Throwable.class);
-    assertThat((Throwable) event).hasMessage(expected);
+    assertThat(((Throwable) event).getMessage()).contains(expected);
   }
 
   public void assertNoMoreEvents() {
