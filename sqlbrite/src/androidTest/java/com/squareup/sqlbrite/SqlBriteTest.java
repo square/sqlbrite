@@ -60,7 +60,7 @@ public final class SqlBriteTest {
     helper = new TestDb(InstrumentationRegistry.getContext());
     real = helper.getWritableDatabase();
     db = SqlBrite.builder(helper)
-        .debugLogging(true)
+        .loggingEnabled(true)
         .build();
   }
 
