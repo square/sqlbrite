@@ -5,6 +5,7 @@ buildscript {
 }
 
 apply plugin: 'com.android.library'
+apply from: rootProject.file('gradle/android-findbugs.gradle')
 
 dependencies {
   compile rootProject.ext.rxJava
