@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">SqlBrite To-Do</string>
+
+  <string name="create">Create</string>
+  <string name="cancel">Cancel</string>
+  <string name="new_list">New List</string>
+  <string name="new_list_hint">Name</string>
+  <string name="new_item">New Item</string>
+  <string name="new_item_hint">Description</string>
+</resources>

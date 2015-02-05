@@ -1,0 +1,80 @@
+buildscript {
+  dependencies {
+    classpath rootProject.ext.androidPlugin
+    classpath 'com.neenbedankt.gradle.plugins:android-apt:1.4'
+  }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'com.neenbedankt.android-apt'
+apply from: rootProject.file('gradle/android-findbugs.gradle')
+
+dependencies {
+  // Android dependencies.
+  compile rootProject.ext.supportV4
+  compile rootProject.ext.supportAnnotations
+
+  // Square dependencies.
+  compile rootProject.ext.dagger
+  apt rootProject.ext.daggerCompiler
+
+  // Third-party dependencies.
+  compile rootProject.ext.butterKnife
+  compile rootProject.ext.timber
+  compile rootProject.ext.rxAndroid
+  compile rootProject.ext.autoParcel
+  apt rootProject.ext.autoParcelProcessor
+
+  provided rootProject.ext.findbugsJsr305
+  provided rootProject.ext.findbugsAnnotations
+
+  // In-repo dependencies.
+  compile project(':sqlbrite')
+}
+
+def isCi() {
+  return Boolean.valueOf(System.getProperty('ci', 'false'))
+}
+
+android {
+  compileSdkVersion rootProject.ext.compileSdkVersion
+  buildToolsVersion rootProject.ext.buildToolsVersion
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_7
+    targetCompatibility JavaVersion.VERSION_1_7
+  }
+
+  lintOptions {
+    textOutput 'stdout'
+  }
+
+  dexOptions {
+    preDexLibraries = !isCi()
+  }
+
+  defaultConfig {
+    minSdkVersion 15
+    targetSdkVersion 21
+    applicationId 'com.example.sqlbrite.todo'
+
+    versionCode 1
+    versionName '1.0'
+  }
+
+  signingConfigs {
+    debug {
+      storeFile file('debug.keystore')
+      storePassword 'android'
+      keyAlias 'android'
+      keyPassword 'android'
+    }
+  }
+
+  buildTypes {
+    debug {
+      applicationIdSuffix '.development'
+      signingConfig signingConfigs.debug
+    }
+  }
+}
