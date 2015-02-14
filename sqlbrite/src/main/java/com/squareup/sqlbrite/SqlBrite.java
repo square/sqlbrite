@@ -126,9 +126,10 @@ public final class SqlBrite implements Closeable {
   /** Publishes sets of tables which have changed. */
   private final PublishSubject<Set<String>> trigger = PublishSubject.create();
 
-  // Read and write guarded by 'this'. Lazily initialized. Use methods to access.
-  private SQLiteDatabase readableDatabase;
-  private SQLiteDatabase writeableDatabase;
+  // Read and write guarded by 'databaseLock'. Lazily initialized. Use methods to access.
+  private volatile SQLiteDatabase readableDatabase;
+  private volatile SQLiteDatabase writeableDatabase;
+  private final Object databaseLock = new Object();
 
   private SqlBrite(Builder builder) {
     helper = builder.helper;
@@ -141,7 +142,7 @@ public final class SqlBrite implements Closeable {
   private SQLiteDatabase getReadableDatabase() {
     SQLiteDatabase db = readableDatabase;
     if (db == null) {
-      synchronized (this) {
+      synchronized (databaseLock) {
         db = readableDatabase;
         if (db == null) {
           if (logging) log("Creating readable database");
@@ -155,7 +156,7 @@ public final class SqlBrite implements Closeable {
   private SQLiteDatabase getWriteableDatabase() {
     SQLiteDatabase db = writeableDatabase;
     if (db == null) {
-      synchronized (this) {
+      synchronized (databaseLock) {
         db = writeableDatabase;
         if (db == null) {
           if (logging) log("Creating writeable database");
@@ -246,10 +247,12 @@ public final class SqlBrite implements Closeable {
    * databases. This does not prevent existing observables from retaining existing references as
    * well as attempting to create new ones for new subscriptions.
    */
-  @Override public synchronized void close() throws IOException {
-    helper.close();
-    readableDatabase = null;
-    writeableDatabase = null;
+  @Override public void close() throws IOException {
+    synchronized (databaseLock) {
+      readableDatabase = null;
+      writeableDatabase = null;
+      helper.close();
+    }
   }
 
   /**
