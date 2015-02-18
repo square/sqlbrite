@@ -42,12 +42,7 @@ public final class SqlBrite implements Closeable {
 
   /** Create an instance around the specified {@code helper} using appropriate defaults. */
   public static SqlBrite create(@NonNull SQLiteOpenHelper helper) {
-    return builder(helper).build();
-  }
-
-  /** Build a new instance around the specified {@code helper}. */
-  public static Builder builder(@NonNull SQLiteOpenHelper helper) {
-    return new Builder(helper);
+    return new SqlBrite(helper);
   }
 
   /** An executable query. */
@@ -61,51 +56,7 @@ public final class SqlBrite implements Closeable {
     void log(String message);
   }
 
-  public static final class Builder {
-    private final SQLiteOpenHelper helper;
-    private boolean logging;
-    private Logger logger;
-
-    private Builder(SQLiteOpenHelper helper) {
-      this.helper = helper;
-    }
-
-    /**
-     * Control whether debug logs for transactions, queries, and notifications are recorded.
-     * <p>
-     * Default: {@code false}
-     */
-    public Builder loggingEnabled(boolean enabled) {
-      logging = enabled;
-      return this;
-    }
-
-    /**
-     * Set the target for {@link #logging} messages.
-     * <p>
-     * Default: {@link Log}
-     */
-    public Builder logger(Logger logger) {
-      this.logger = logger;
-      return this;
-    }
-
-    public SqlBrite build() {
-      if (logging && logger == null) {
-        logger = new Logger() {
-          @Override public void log(String message) {
-            Log.d("SqlBrite", message);
-          }
-        };
-      }
-      return new SqlBrite(this);
-    }
-  }
-
   private final SQLiteOpenHelper helper;
-  private final boolean logging;
-  private final Logger logger;
-
   private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
   /** Publishes sets of tables which have changed. */
   private final PublishSubject<Set<String>> trigger = PublishSubject.create();
@@ -115,10 +66,38 @@ public final class SqlBrite implements Closeable {
   private volatile SQLiteDatabase writeableDatabase;
   private final Object databaseLock = new Object();
 
-  private SqlBrite(Builder builder) {
-    helper = builder.helper;
-    logging = builder.logging;
-    logger = builder.logger;
+  // Not volatile because we don't care if threads don't immediately see changes to this value.
+  private boolean logging;
+  private volatile Logger logger;
+
+  private SqlBrite(SQLiteOpenHelper helper) {
+    this.helper = helper;
+  }
+
+  /**
+   * Control whether debug logging is enabled.
+   * <p>
+   * By default this method will log verbose message to {@linkplain Log Android's log}. Use a
+   * custom logger by calling {@link #setLogger}.
+   */
+  public void setLoggingEnabled(boolean enabled) {
+    if (enabled && logger == null) {
+      logger = new Logger() {
+        @Override public void log(String message) {
+          Log.v("SqlBrite", message);
+        }
+      };
+    }
+    logging = enabled;
+  }
+
+  /**
+   * Specify a custom logger for debug messages when {@linkplain #setLoggingEnabled(boolean)
+   * logging is enabled}.
+   */
+  public void setLogger(Logger logger) {
+    if (logger == null) throw new NullPointerException("logger == null");
+    this.logger = logger;
   }
 
   private SQLiteDatabase getReadableDatabase() {

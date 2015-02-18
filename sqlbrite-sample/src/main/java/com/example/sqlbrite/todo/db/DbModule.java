@@ -16,13 +16,17 @@ public final class DbModule {
   }
 
   @Provides @Singleton SqlBrite provideSqlBrite(SQLiteOpenHelper openHelper) {
-    return SqlBrite.builder(openHelper)
-        .loggingEnabled(BuildConfig.DEBUG)
-        .logger(new SqlBrite.Logger() {
-          @Override public void log(String message) {
-            Timber.tag("SqlBrite").d(message);
-          }
-        })
-        .build();
+    SqlBrite db = SqlBrite.create(openHelper);
+
+    if (BuildConfig.DEBUG) {
+      db.setLogger(new SqlBrite.Logger() {
+        @Override public void log(String message) {
+          Timber.tag("Database").v(message);
+        }
+      });
+      db.setLoggingEnabled(true);
+    }
+
+    return db;
   }
 }

@@ -8,6 +8,7 @@ import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import com.google.common.collect.Range;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -59,13 +60,46 @@ public final class SqlBriteTest {
   @Before public void setUp() {
     helper = new TestDb(InstrumentationRegistry.getContext());
     real = helper.getWritableDatabase();
-    db = SqlBrite.builder(helper)
-        .loggingEnabled(true)
-        .build();
+    db = SqlBrite.create(helper);
+    db.setLoggingEnabled(true);
   }
 
   @After public void tearDown() {
     o.assertNoMoreEvents();
+  }
+
+  @Test public void loggerInvalidValues() {
+    try {
+      db.setLogger(null);
+      fail();
+    } catch (NullPointerException e) {
+      assertThat(e).hasMessage("logger == null");
+    }
+  }
+
+  @Test public void loggerEnabled() {
+    final List<String> logs = new ArrayList<>();
+    db.setLogger(new SqlBrite.Logger() {
+      @Override public void log(String message) {
+        logs.add(message);
+      }
+    });
+
+    db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+    assertThat(logs).isNotEmpty();
+  }
+
+  @Test public void loggerDisabled() {
+    final List<String> logs = new ArrayList<>();
+    db.setLoggingEnabled(false);
+    db.setLogger(new SqlBrite.Logger() {
+      @Override public void log(String message) {
+        logs.add(message);
+      }
+    });
+
+    db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+    assertThat(logs).isEmpty();
   }
 
   @Test public void closePropagates() throws IOException {
@@ -344,7 +378,7 @@ public final class SqlBriteTest {
       db.endTransaction();
       fail();
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage()).isEqualTo("Not in transaction.");
+      assertThat(e).hasMessage("Not in transaction.");
     }
   }
 
