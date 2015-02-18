@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import rx.functions.Func1;
 
+import static com.squareup.sqlbrite.SqlBrite.Query;
+
 @AutoParcel
 public abstract class TodoItem {
   public static final String TABLE = "todo_item";
@@ -21,8 +23,9 @@ public abstract class TodoItem {
   public abstract String description();
   public abstract boolean complete();
 
-  public static final Func1<Cursor, List<TodoItem>> MAP = new Func1<Cursor, List<TodoItem>>() {
-    @Override public List<TodoItem> call(final Cursor cursor) {
+  public static final Func1<Query, List<TodoItem>> MAP = new Func1<Query, List<TodoItem>>() {
+    @Override public List<TodoItem> call(Query query) {
+      Cursor cursor = query.run();
       try {
         List<TodoItem> values = new ArrayList<>(cursor.getCount());
         while (cursor.moveToNext()) {

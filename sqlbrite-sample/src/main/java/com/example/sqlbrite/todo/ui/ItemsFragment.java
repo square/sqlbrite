@@ -33,6 +33,7 @@ import rx.subscriptions.CompositeSubscription;
 
 import static android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM;
 import static android.view.MenuItem.SHOW_AS_ACTION_WITH_TEXT;
+import static com.squareup.sqlbrite.SqlBrite.Query;
 
 public final class ItemsFragment extends Fragment {
   private static final String KEY_LIST_ID = "list_id";
@@ -135,8 +136,9 @@ public final class ItemsFragment extends Fragment {
     subscriptions = new CompositeSubscription();
 
     Observable<Integer> itemCount = db.createQuery(TodoItem.TABLE, COUNT_QUERY, listId) //
-        .map(new Func1<Cursor, Integer>() {
-          @Override public Integer call(Cursor cursor) {
+        .map(new Func1<Query, Integer>() {
+          @Override public Integer call(Query query) {
+            Cursor cursor = query.run();
             try {
               if (!cursor.moveToNext()) {
                 throw new AssertionError("No rows");
@@ -148,8 +150,9 @@ public final class ItemsFragment extends Fragment {
           }
         });
     Observable<String> listName =
-        db.createQuery(TodoList.TABLE, TITLE_QUERY, listId).map(new Func1<Cursor, String>() {
-          @Override public String call(Cursor cursor) {
+        db.createQuery(TodoList.TABLE, TITLE_QUERY, listId).map(new Func1<Query, String>() {
+          @Override public String call(Query query) {
+            Cursor cursor = query.run();
             try {
               if (!cursor.moveToNext()) {
                 throw new AssertionError("No rows");

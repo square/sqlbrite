@@ -7,9 +7,10 @@ import java.util.concurrent.LinkedBlockingDeque;
 import rx.Observer;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.squareup.sqlbrite.SqlBrite.Query;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-final class RecordingObserver implements Observer<Cursor> {
+final class RecordingObserver implements Observer<Query> {
   private static final Object COMPLETED = "<completed>";
   private static final String TAG = RecordingObserver.class.getSimpleName();
 
@@ -25,9 +26,9 @@ final class RecordingObserver implements Observer<Cursor> {
     events.add(e);
   }
 
-  @Override public void onNext(Cursor value) {
+  @Override public void onNext(Query value) {
     Log.d(TAG, "onNext " + value);
-    events.add(value);
+    events.add(value.run());
   }
 
   private Object takeEvent() {

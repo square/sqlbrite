@@ -23,6 +23,7 @@ import rx.Subscription;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.RecordingObserver.CursorAssert;
+import static com.squareup.sqlbrite.SqlBrite.Query;
 import static com.squareup.sqlbrite.TestDb.EmployeeTable.ID;
 import static com.squareup.sqlbrite.TestDb.EmployeeTable.NAME;
 import static com.squareup.sqlbrite.TestDb.EmployeeTable.USERNAME;
@@ -33,7 +34,6 @@ import static com.squareup.sqlbrite.TestDb.TABLE_MANAGER;
 import static com.squareup.sqlbrite.TestDb.employee;
 import static com.squareup.sqlbrite.TestDb.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
@@ -71,22 +71,6 @@ public final class SqlBriteTest {
   @Test public void closePropagates() throws IOException {
     db.close();
     assertThat(real.isOpen()).isFalse();
-  }
-
-  @Test public void invalidThrottleValues() {
-    SqlBrite.Builder builder = SqlBrite.builder(helper);
-    try {
-      builder.throttle(-1, SECONDS);
-      fail();
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage()).isEqualTo("amount < 0");
-    }
-    try {
-      builder.throttle(1, null);
-      fail();
-    } catch (NullPointerException e) {
-      assertThat(e.getMessage()).isEqualTo("unit == null");
-    }
   }
 
   @Test public void query() {
@@ -128,8 +112,10 @@ public final class SqlBriteTest {
         .isExhausted();
   }
 
-  @Test public void queryObservesInsertThrottled() {
-    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+  @Test public void queryObservesInsertDebounced() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .debounce(500, MILLISECONDS)
+        .subscribe(o);
     o.assertCursor()
         .hasRow("alice", "Alice Allison")
         .hasRow("bob", "Bob Bobberson")
@@ -162,46 +148,6 @@ public final class SqlBriteTest {
 
     long tookNs = System.nanoTime() - startNs;
     assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.closed(500L, 525L));
-  }
-
-  @Test public void queryObservesInsertCustomThrottle() {
-    db = SqlBrite.builder(helper)
-        .throttle(200, MILLISECONDS)
-        .build();
-
-    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
-    o.assertCursor()
-        .hasRow("alice", "Alice Allison")
-        .hasRow("bob", "Bob Bobberson")
-        .hasRow("eve", "Eve Evenson")
-        .isExhausted();
-
-    long startNs = System.nanoTime();
-
-    // Shotgun 10 inserts which will cause 10 triggers. DO NOT DO THIS IRL! Use a transaction!
-    for (int i = 0; i < 10; i++) {
-      db.insert(TABLE_EMPLOYEE, employee("john" + i, "John Johnson " + i));
-    }
-
-    // Only one trigger should have been observed.
-    o.assertCursor()
-        .hasRow("alice", "Alice Allison")
-        .hasRow("bob", "Bob Bobberson")
-        .hasRow("eve", "Eve Evenson")
-        .hasRow("john0", "John Johnson 0")
-        .hasRow("john1", "John Johnson 1")
-        .hasRow("john2", "John Johnson 2")
-        .hasRow("john3", "John Johnson 3")
-        .hasRow("john4", "John Johnson 4")
-        .hasRow("john5", "John Johnson 5")
-        .hasRow("john6", "John Johnson 6")
-        .hasRow("john7", "John Johnson 7")
-        .hasRow("john8", "John Johnson 8")
-        .hasRow("john9", "John Johnson 9")
-        .isExhausted();
-
-    long tookNs = System.nanoTime() - startNs;
-    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.closed(200L, 225L));
   }
 
   @Test public void queryNotNotifiedWhenInsertFails() {
@@ -332,7 +278,7 @@ public final class SqlBriteTest {
   }
 
   @Test public void queryOnlyNotifiedAfterSubscribe() {
-    Observable<Cursor> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
+    Observable<Query> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
     o.assertNoMoreEvents();
 
     db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
@@ -386,7 +332,7 @@ public final class SqlBriteTest {
   }
 
   @Test public void querySubscribedToDuringTransactionThrows() {
-    Observable<Cursor> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
+    Observable<Query> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
 
     db.beginTransaction();
     query.subscribe(o);
@@ -428,7 +374,7 @@ public final class SqlBriteTest {
   }
 
   @Test public void queryCreatedBeforeTransactionButSubscribedAfter() {
-    Observable<Cursor> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
+    Observable<Query> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
 
     db.beginTransaction();
     try {

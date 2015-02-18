@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -51,6 +50,12 @@ public final class SqlBrite implements Closeable {
     return new Builder(helper);
   }
 
+  /** An executable query. */
+  public interface Query {
+    /** Execute the query on the underlying database and return the resulting cursor. */
+    Cursor run();
+  }
+
   /** A simple indirection for logging debug messages. */
   public interface Logger {
     void log(String message);
@@ -60,8 +65,6 @@ public final class SqlBrite implements Closeable {
     private final SQLiteOpenHelper helper;
     private boolean logging;
     private Logger logger;
-    private long throttleAmount = 500;
-    private TimeUnit throttleUnit = TimeUnit.MILLISECONDS;
 
     private Builder(SQLiteOpenHelper helper) {
       this.helper = helper;
@@ -87,23 +90,6 @@ public final class SqlBrite implements Closeable {
       return this;
     }
 
-    /**
-     * Throttle query notifications after the initial result. This value will prevent your
-     * subscriber from being called rapidly when multiple database interactions modify data.
-     * <p>
-     * <b>Note:</b> This feature means that {@linkplain #logging debug logs} will only show
-     * the most recent trigger for a query.
-     * <p>
-     * Default: 500 milliseconds.
-     */
-    public Builder throttle(long amount, TimeUnit unit) {
-      if (amount < 0) throw new IllegalArgumentException("amount < 0");
-      if (unit == null) throw new NullPointerException("unit == null");
-      throttleAmount = amount;
-      throttleUnit = unit;
-      return this;
-    }
-
     public SqlBrite build() {
       if (logging && logger == null) {
         logger = new Logger() {
@@ -119,8 +105,6 @@ public final class SqlBrite implements Closeable {
   private final SQLiteOpenHelper helper;
   private final boolean logging;
   private final Logger logger;
-  private final long throttleAmount;
-  private final TimeUnit throttleUnit;
 
   private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
   /** Publishes sets of tables which have changed. */
@@ -135,8 +119,6 @@ public final class SqlBrite implements Closeable {
     helper = builder.helper;
     logging = builder.logging;
     logger = builder.logger;
-    throttleAmount = builder.throttleAmount;
-    throttleUnit = builder.throttleUnit;
   }
 
   private SQLiteDatabase getReadableDatabase() {
@@ -256,20 +238,21 @@ public final class SqlBrite implements Closeable {
   }
 
   /**
-   * Create an observable which will run the {@code sql} query (using the optional {@code args}
-   * replacement values) and notify the subscriber with a {@linkplain Cursor cursor} for reading
-   * the result. Subscribers are responsible for always closing the cursor.
+   * Create an observable which will notify subscribers with a {@linkplain Query query} for
+   * execution. Subscribers are responsible for <b>always</b> closing {@link Cursor} instance
+   * returned from the {@link Query}.
    * <p>
-   * Subscribers will automatically be notified with a new cursor if the specified {@code table}
-   * changes through the {@code insert}, {@code update}, and {@code delete} methods of this class.
-   * Unsubscribe when you no longer want updates to a query.
+   * Subscribers will receive an immediate notification for initial data as well as subsequent
+   * notifications for when the supplied {@code table}'s data changes through the {@code insert},
+   * {@code update}, and {@code delete} methods of this class. Unsubscribe when you no longer want
+   * updates to a query.
    * <p>
    * <b>Warning:</b> this method does not perform the query! Only by subscribing to the returned
    * {@link Observable} will the operation occur.
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  public Observable<Cursor> createQuery(@NonNull final String table, @NonNull String sql,
+  public Observable<Query> createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
@@ -284,20 +267,12 @@ public final class SqlBrite implements Closeable {
   }
 
   /**
-   * Create an observable which will run the {@code sql} query (using the optional {@code args}
-   * replacement values) and notify the subscriber with a {@linkplain Cursor cursor} for reading
-   * the result. Subscribers are responsible for always closing the cursor.
-   * <p>
-   * Subscribers will automatically be notified with a new cursor if the specified {@code tables}
-   * change through the {@code insert}, {@code update}, and {@code delete} methods of this class.
-   * Unsubscribe when you no longer want updates to a query.
-   * <p>
-   * <b>Warning:</b> this method does not perform the query! Only by subscribing to the returned
-   * {@link Observable} will the operation occur.
+   * See {@link #createQuery(String, String, String...)} for usage. This overload allows for
+   * monitoring multiple tables for changes.
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  public Observable<Cursor> createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
+  public Observable<Query> createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
@@ -316,29 +291,40 @@ public final class SqlBrite implements Closeable {
     return createQuery(tableFilter, sql, args);
   }
 
-  private Observable<Cursor> createQuery(final Func1<Set<String>, Boolean> tableFilter,
+  private Observable<Query> createQuery(final Func1<Set<String>, Boolean> tableFilter,
       final String sql, final String... args) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
           + "Use query() for a query inside a transaction.");
     }
 
+    final Query query = new Query() {
+      @Override public Cursor run() {
+        if (transactions.get() != null) {
+          throw new IllegalStateException("Cannot execute observable query in a transaction.");
+        }
+        return getReadableDatabase().rawQuery(sql, args);
+      }
+
+      @Override public String toString() {
+        return sql;
+      }
+    };
+
     return trigger //
         .filter(tableFilter) // Only trigger on tables we care about.
-        .throttleLast(throttleAmount, throttleUnit) // Ensure triggers don't spam us.
         .startWith(INITIAL_TRIGGER) // Immediately execute the query for initial value.
-        .map(new Func1<Set<String>, Cursor>() {
-          @Override public Cursor call(Set<String> trigger) {
+        .map(new Func1<Set<String>, Query>() {
+          @Override public Query call(Set<String> trigger) {
             if (transactions.get() != null) {
               throw new IllegalStateException(
                   "Cannot subscribe to observable query in a transaction.");
             }
-
             if (logging) {
               log("QUERY\n  trigger: %s\n  tables: %s\n  sql: %s\n  args: %s", trigger, tableFilter,
                   sql, Arrays.toString(args));
             }
-            return getReadableDatabase().rawQuery(sql, args);
+            return query;
           }
         });
   }

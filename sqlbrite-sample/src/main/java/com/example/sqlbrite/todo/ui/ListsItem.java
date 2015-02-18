@@ -11,6 +11,8 @@ import java.util.Collection;
 import java.util.List;
 import rx.functions.Func1;
 
+import static com.squareup.sqlbrite.SqlBrite.Query;
+
 @AutoParcel
 abstract class ListsItem {
   private static String ALIAS_LIST = "list";
@@ -33,8 +35,9 @@ abstract class ListsItem {
   abstract String name();
   abstract int itemCount();
 
-  static Func1<Cursor, List<ListsItem>> MAP = new Func1<Cursor, List<ListsItem>>() {
-    @Override public List<ListsItem> call(final Cursor cursor) {
+  static Func1<Query, List<ListsItem>> MAP = new Func1<Query, List<ListsItem>>() {
+    @Override public List<ListsItem> call(Query query) {
+      Cursor cursor = query.run();
       try {
         List<ListsItem> values = new ArrayList<>(cursor.getCount());
         while (cursor.moveToNext()) {
