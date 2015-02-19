@@ -1,0 +1,37 @@
+subprojects {
+  buildscript {
+    repositories {
+      mavenCentral()
+    }
+  }
+
+  repositories {
+    mavenCentral()
+  }
+}
+
+ext {
+  androidPlugin = 'com.android.tools.build:gradle:1.1.0'
+  compileSdkVersion = 21
+  buildToolsVersion = '21.1.2'
+
+  // Android dependencies.
+  supportV4 = 'com.android.support:support-v4:21.0.3'
+  supportAnnotations = 'com.android.support:support-annotations:21.0.3'
+  testingSupportLib = 'com.android.support.test:testing-support-lib:0.1'
+
+  // Square dependencies.
+  dagger = 'com.squareup.dagger:dagger:1.2.2'
+  daggerCompiler = 'com.squareup.dagger:dagger-compiler:1.2.2'
+
+  // Third-party dependencies.
+  butterKnife = 'com.jakewharton:butterknife:6.1.0'
+  timber = 'com.jakewharton.timber:timber:2.7.1'
+  autoParcel = 'com.github.frankiesardo:auto-parcel:0.3'
+  autoParcelProcessor = 'com.github.frankiesardo:auto-parcel-processor:0.3'
+  rxJava = 'io.reactivex:rxjava:1.0.6'
+  rxAndroid = 'io.reactivex:rxandroid:0.24.0'
+  truth = 'com.google.truth:truth:0.25'
+  findbugsJsr305 = 'com.google.code.findbugs:jsr305:3.0.0'
+  findbugsAnnotations = 'com.google.code.findbugs:annotations:3.0.0'
+}

@@ -33,7 +33,7 @@ dependencies {
 }
 
 def isCi() {
-  return Boolean.valueOf(System.getProperty('ci', 'false'))
+  return "true".equals(System.getenv('CI'))
 }
 
 android {
