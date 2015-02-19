@@ -1,0 +1,4 @@
+include ':sqlbrite'
+include ':sqlbrite-sample'
+
+rootProject.name = 'sqlbrite-root'
