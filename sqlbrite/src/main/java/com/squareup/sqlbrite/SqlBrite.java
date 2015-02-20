@@ -484,7 +484,7 @@ public final class SqlBrite implements Closeable {
     }
 
     @Override public String toString() {
-      String name = String.format("%08x", System.identityHashCode(this)).replace(' ', '0');
+      String name = String.format("%08x", System.identityHashCode(this));
       return parent == null ? name : name + " [" + parent.toString() + ']';
     }
   }
