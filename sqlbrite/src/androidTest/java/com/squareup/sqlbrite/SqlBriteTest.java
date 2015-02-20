@@ -196,7 +196,7 @@ public final class SqlBriteTest {
         .isExhausted();
 
     long tookNs = System.nanoTime() - startNs;
-    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.closed(500L, 525L));
+    assertThat(TimeUnit.NANOSECONDS.toMillis(tookNs)).isIn(Range.atLeast(500L));
   }
 
   @Test public void queryNotNotifiedWhenInsertFails() {

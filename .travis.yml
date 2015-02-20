@@ -22,8 +22,8 @@ after_success:
 
 env:
   global:
-    - secure: "changeme"
-    - secure: "changeme"
+    - secure: "bbgUijBzc39gn73pZ81S9up+TiLLg7C3onDu1eTPEbg1l2CukpmImY07psl6kTBWqDNCg/0SIJ+21PLNB9gEmrLpcHL4lKy7Y2b381B1brFsY/byaZKGrFi05t61VJlfsPv0Jv6vc3ExEcxGcSvGFWYvxFegJInkj0e+Ft2tfA8="
+    - secure: "VeoQsk3wmtwo3tvvir1sYtmxFVvkZyPy8ivKAurBdhypw64d8PABTBvlSYwW4LRKWXFpEChB3Bg85gwEKPXE6GynHKI5rUW2Tr1gjoFZoBEOmCQ63nRYjMlA5aiM76JPONeV4Okm62oZwx2V8UAppl2NOce+sv59htBsjdmX1Pk="
 
 branches:
   except:
