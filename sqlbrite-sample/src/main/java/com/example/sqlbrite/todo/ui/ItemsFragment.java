@@ -125,7 +125,12 @@ public final class ItemsFragment extends Fragment {
 
   @Override public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
-    View view = inflater.inflate(R.layout.items, container, false);
+    return inflater.inflate(R.layout.items, container, false);
+  }
+
+  @Override
+  public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+    super.onViewCreated(view, savedInstanceState);
     ButterKnife.inject(this, view);
     listView.setEmptyView(emptyView);
     listView.setAdapter(adapter);
@@ -140,8 +145,6 @@ public final class ItemsFragment extends Fragment {
                 TodoItem.ID + " = ?", String.valueOf(event.id()));
           }
         });
-
-    return view;
   }
 
   @Override public void onResume() {

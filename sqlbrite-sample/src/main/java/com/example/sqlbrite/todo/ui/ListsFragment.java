@@ -87,11 +87,15 @@ public final class ListsFragment extends Fragment {
 
   @Override public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
-    View view = inflater.inflate(R.layout.lists, container, false);
+    return inflater.inflate(R.layout.lists, container, false);
+  }
+
+  @Override
+  public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+    super.onViewCreated(view, savedInstanceState);
     ButterKnife.inject(this, view);
     listView.setEmptyView(emptyView);
     listView.setAdapter(adapter);
-    return view;
   }
 
   @OnItemClick(android.R.id.list) void listClicked(long listId) {
