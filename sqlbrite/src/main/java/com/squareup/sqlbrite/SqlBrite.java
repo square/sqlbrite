@@ -74,7 +74,7 @@ public final class SqlBrite implements Closeable {
   private final SQLiteOpenHelper helper;
   private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
   /** Publishes sets of tables which have changed. */
-  private final PublishSubject<Set<String>> trigger = PublishSubject.create();
+  private final PublishSubject<Set<String>> triggers = PublishSubject.create();
 
   // Read and write guarded by 'databaseLock'. Lazily initialized. Use methods to access.
   private volatile SQLiteDatabase readableDatabase;
@@ -149,7 +149,7 @@ public final class SqlBrite implements Closeable {
       transaction.triggers.addAll(tables);
     } else {
       if (logging) log("TRIGGER %s", tables);
-      trigger.onNext(tables);
+      triggers.onNext(tables);
     }
   }
 
@@ -305,7 +305,7 @@ public final class SqlBrite implements Closeable {
       }
     };
 
-    return trigger //
+    return triggers //
         .filter(tableFilter) // Only trigger on tables we care about.
         .startWith(INITIAL_TRIGGER) // Immediately execute the query for initial value.
         .map(new Func1<Set<String>, Query>() {
