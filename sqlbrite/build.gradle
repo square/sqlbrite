@@ -17,6 +17,10 @@ dependencies {
   }
 }
 
+def isCi() {
+  return "true".equals(System.getenv('CI'))
+}
+
 android {
   compileSdkVersion rootProject.ext.compileSdkVersion
   buildToolsVersion rootProject.ext.buildToolsVersion
@@ -28,6 +32,10 @@ android {
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_7
     targetCompatibility JavaVersion.VERSION_1_7
+  }
+
+  dexOptions {
+    preDexLibraries = !isCi()
   }
 
   lintOptions {
@@ -42,6 +50,19 @@ android {
 
   packagingOptions {
     exclude 'LICENSE.txt'
+  }
+}
+
+
+if (isCi()) {
+  println 'Running on CI. Adding task to start emulator.'
+
+  task startEmulator << {
+    "$rootDir/gradle/start-emulator.sh".execute().waitFor()
+  }
+
+  android.testVariants.all { variant ->
+    variant.connectedInstrumentTest.dependsOn startEmulator
   }
 }
 
