@@ -104,9 +104,9 @@ public final class ListsFragment extends Fragment {
     getActivity().setTitle("To-Do");
 
     subscription = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
+        .map(ListsItem.MAP)
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
-        .map(ListsItem.MAP)
         .subscribe(adapter);
   }
 
