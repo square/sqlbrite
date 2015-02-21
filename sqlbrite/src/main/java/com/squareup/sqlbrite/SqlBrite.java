@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -427,6 +428,37 @@ public final class SqlBrite implements Closeable {
       sendTableTrigger(Collections.singleton(table));
     }
     return rows;
+  }
+
+  /**
+   * Temporarily end the transaction to let other threads run. The transaction is assumed to be
+   * successful so far. Do not call setTransactionSuccessful before calling this. When this
+   * returns a new transaction will have been created but not marked as successful. This assumes
+   * that there are no nested transactions (beginTransaction has only been called once) and will
+   * throw an exception if that is not the case.
+   * @return true if the transaction was yielded
+   *
+   * @see SQLiteDatabase#yieldIfContendedSafely()
+   */
+  public boolean yieldIfContendedSafely() {
+    return getWriteableDatabase().yieldIfContendedSafely();
+  }
+
+  /**
+   * Temporarily end the transaction to let other threads run. The transaction is assumed to be
+   * successful so far. Do not call setTransactionSuccessful before calling this. When this
+   * returns a new transaction will have been created but not marked as successful. This assumes
+   * that there are no nested transactions (beginTransaction has only been called once) and will
+   * throw an exception if that is not the case.
+   * @param sleepAmount if > 0, sleep this long before starting a new transaction if
+   *   the lock was actually yielded. This will allow other background threads to make some
+   *   more progress than they would if we started the transaction immediately.
+   * @return true if the transaction was yielded
+   *
+   * @see SQLiteDatabase#yieldIfContendedSafely(long)
+   */
+  public boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit) {
+    return getWriteableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
   }
 
   @IntDef({
