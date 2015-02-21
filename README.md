@@ -129,7 +129,7 @@ Download
 --------
 
 ```groovy
-compile 'com.squareup.sqlbrite:sqlbrite:0.1.0-SNAPSHOT'
+compile 'com.squareup.sqlbrite:sqlbrite:0.1.0'
 ```
 
 Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
