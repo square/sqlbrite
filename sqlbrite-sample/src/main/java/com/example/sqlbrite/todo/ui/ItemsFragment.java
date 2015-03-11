@@ -20,6 +20,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -46,8 +47,8 @@ import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
-import static android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM;
-import static android.view.MenuItem.SHOW_AS_ACTION_WITH_TEXT;
+import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
+import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 import static com.squareup.sqlbrite.SqlBrite.Query;
 
 public final class ItemsFragment extends Fragment {
@@ -113,14 +114,14 @@ public final class ItemsFragment extends Fragment {
   @Override public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
     super.onCreateOptionsMenu(menu, inflater);
 
-    menu.add(R.string.new_item)
-        .setShowAsActionFlags(SHOW_AS_ACTION_IF_ROOM | SHOW_AS_ACTION_WITH_TEXT)
+    MenuItem item = menu.add(R.string.new_item)
         .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
           @Override public boolean onMenuItemClick(MenuItem item) {
             listener.onNewItemClicked(getListId());
             return true;
           }
         });
+    MenuItemCompat.setShowAsAction(item, SHOW_AS_ACTION_IF_ROOM | SHOW_AS_ACTION_WITH_TEXT);
   }
 
   @Override public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,

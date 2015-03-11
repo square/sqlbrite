@@ -54,7 +54,7 @@ android {
   }
 
   defaultConfig {
-    minSdkVersion 15
+    minSdkVersion 9
     targetSdkVersion 21
     applicationId 'com.example.sqlbrite.todo'
 

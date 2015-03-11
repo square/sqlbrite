@@ -19,6 +19,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -37,8 +38,8 @@ import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-import static android.view.MenuItem.SHOW_AS_ACTION_IF_ROOM;
-import static android.view.MenuItem.SHOW_AS_ACTION_WITH_TEXT;
+import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
+import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 
 public final class ListsFragment extends Fragment {
   interface Listener {
@@ -75,14 +76,14 @@ public final class ListsFragment extends Fragment {
   @Override public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
     super.onCreateOptionsMenu(menu, inflater);
 
-    menu.add(R.string.new_list)
-        .setShowAsActionFlags(SHOW_AS_ACTION_IF_ROOM | SHOW_AS_ACTION_WITH_TEXT)
+    MenuItem item = menu.add(R.string.new_list)
         .setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
           @Override public boolean onMenuItemClick(MenuItem item) {
             listener.onNewListClicked();
             return true;
           }
         });
+    MenuItemCompat.setShowAsAction(item, SHOW_AS_ACTION_IF_ROOM | SHOW_AS_ACTION_WITH_TEXT);
   }
 
   @Override public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
