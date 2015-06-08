@@ -11,14 +11,14 @@ subprojects {
 }
 
 ext {
-  androidPlugin = 'com.android.tools.build:gradle:1.1.0'
-  compileSdkVersion = 21
-  buildToolsVersion = '21.1.2'
+  androidPlugin = 'com.android.tools.build:gradle:1.2.3'
+  compileSdkVersion = 22
+  buildToolsVersion = '22.0.1'
 
   // Android dependencies.
-  supportV4 = 'com.android.support:support-v4:21.0.3'
-  supportAnnotations = 'com.android.support:support-annotations:21.0.3'
-  testingSupportLib = 'com.android.support.test:testing-support-lib:0.1'
+  supportV4 = 'com.android.support:support-v4:22.1.0'
+  supportAnnotations = 'com.android.support:support-annotations:22.1.0'
+  supportTestRunner = 'com.android.support.test:runner:0.3'
 
   // Square dependencies.
   dagger = 'com.squareup.dagger:dagger:1.2.2'

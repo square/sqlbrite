@@ -11,7 +11,7 @@ dependencies {
   compile rootProject.ext.rxJava
   compile rootProject.ext.supportAnnotations
 
-  androidTestCompile rootProject.ext.testingSupportLib
+  androidTestCompile rootProject.ext.supportTestRunner
   androidTestCompile(rootProject.ext.truth) {
     exclude group: 'junit' // Android has JUnit built in.
   }
