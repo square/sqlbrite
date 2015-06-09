@@ -23,7 +23,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import java.util.Arrays;
 import rx.Observable;
 import rx.Subscriber;
@@ -35,48 +34,24 @@ import static com.squareup.sqlbrite.SqlBrite.Query;
 
 /**
  * A lightweight wrapper around {@link ContentResolver} which allows for continuously observing
- * the result of a query.
+ * the result of a query. Create using a {@link SqlBrite} instance.
  */
-public final class SqlBriteContentProvider {
-  public static SqlBriteContentProvider create(@NonNull ContentResolver contentResolver) {
-    return new SqlBriteContentProvider(contentResolver);
-  }
-
+public final class BriteContentResolver {
   private final Handler contentObserverHandler = new Handler(Looper.getMainLooper());
+
   private final ContentResolver contentResolver;
+  private final Logger logger;
 
-  // Not volatile because we don't care if threads don't immediately see changes to this value.
-  private boolean logging;
-  private volatile Logger logger;
+  private volatile boolean logging;
 
-  private SqlBriteContentProvider(ContentResolver contentResolver) {
+  BriteContentResolver(@NonNull ContentResolver contentResolver, @NonNull Logger logger) {
     this.contentResolver = contentResolver;
-  }
-
-  /**
-   * Control whether debug logging is enabled.
-   * <p>
-   * By default this method will log verbose message to {@linkplain Log Android's log}. Use a
-   * custom logger by calling {@link #setLogger}.
-   */
-  public void setLoggingEnabled(boolean enabled) {
-    if (enabled && logger == null) {
-      logger = new Logger() {
-        @Override public void log(String message) {
-          Log.v("SqlBrite", message);
-        }
-      };
-    }
-    logging = enabled;
-  }
-
-  /**
-   * Specify a custom logger for debug messages when {@linkplain #setLoggingEnabled(boolean)
-   * logging is enabled}.
-   */
-  public void setLogger(Logger logger) {
-    if (logger == null) throw new NullPointerException("logger == null");
     this.logger = logger;
+  }
+
+  /** Control whether debug logging is enabled. */
+  public void setLoggingEnabled(boolean enabled) {
+    logging = enabled;
   }
 
   /**

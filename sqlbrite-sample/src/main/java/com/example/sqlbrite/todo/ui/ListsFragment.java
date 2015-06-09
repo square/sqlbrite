@@ -32,7 +32,7 @@ import butterknife.InjectView;
 import butterknife.OnItemClick;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
-import com.squareup.sqlbrite.SqlBrite;
+import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
@@ -51,7 +51,7 @@ public final class ListsFragment extends Fragment {
     return new ListsFragment();
   }
 
-  @Inject SqlBrite db;
+  @Inject BriteDatabase db;
 
   @InjectView(android.R.id.list) ListView listView;
   @InjectView(android.R.id.empty) View emptyView;

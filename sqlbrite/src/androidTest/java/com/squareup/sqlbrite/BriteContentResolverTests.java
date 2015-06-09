@@ -31,30 +31,37 @@ import rx.subscriptions.Subscriptions;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public final class SqlBriteContentProviderTests
-    extends ProviderTestCase2<SqlBriteContentProviderTests.TestContentProvider> {
+public final class BriteContentResolverTests
+    extends ProviderTestCase2<BriteContentResolverTests.TestContentProvider> {
   private static final Uri AUTHORITY = Uri.parse("content://test_authority");
   private static final Uri TABLE = AUTHORITY.buildUpon().appendPath("test_table").build();
   private static final String KEY = "test_key";
   private static final String VALUE = "test_value";
 
+  private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
 
   private ContentResolver contentResolver;
-  private SqlBriteContentProvider db;
+  private BriteContentResolver db;
   private Subscription subscription;
 
-  public SqlBriteContentProviderTests() {
+  public BriteContentResolverTests() {
     super(TestContentProvider.class, AUTHORITY.getAuthority());
   }
 
   @Override protected void setUp() throws Exception {
     super.setUp();
     contentResolver = getMockContentResolver();
-    db = SqlBriteContentProvider.create(contentResolver);
-    getProvider().init(getContext().getContentResolver());
-    db.setLoggingEnabled(true);
     subscription = Subscriptions.empty();
+
+    SqlBrite.Logger logger = new SqlBrite.Logger() {
+      @Override public void log(String message) {
+        logs.add(message);
+      }
+    };
+    db = new BriteContentResolver(contentResolver, logger);
+
+    getProvider().init(getContext().getContentResolver());
   }
 
   @Override public void tearDown() {
@@ -62,22 +69,8 @@ public final class SqlBriteContentProviderTests
     subscription.unsubscribe();
   }
 
-  public void testLoggerInvalidValues() {
-    try {
-      db.setLogger(null);
-      fail();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("logger == null");
-    }
-  }
-
   public void testLoggerEnabled() {
-    final List<String> logs = new ArrayList<>();
-    db.setLogger(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        logs.add(message);
-      }
-    });
+    db.setLoggingEnabled(true);
 
     subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
@@ -88,13 +81,7 @@ public final class SqlBriteContentProviderTests
   }
 
   public void testLoggerDisabled() {
-    final List<String> logs = new ArrayList<>();
     db.setLoggingEnabled(false);
-    db.setLogger(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        logs.add(message);
-      }
-    });
 
     contentResolver.insert(TABLE, values("key1", "value1"));
     assertThat(logs).isEmpty();
@@ -127,13 +114,6 @@ public final class SqlBriteContentProviderTests
   }
 
   public void testUnsubscribeDoesNotTrigger() {
-    final List<String> logs = new ArrayList<>();
-    db.setLogger(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        logs.add(message);
-      }
-    });
-
     subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
     subscription.unsubscribe();
