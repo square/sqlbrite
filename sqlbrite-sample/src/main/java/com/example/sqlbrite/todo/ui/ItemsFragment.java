@@ -35,7 +35,7 @@ import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
-import com.squareup.sqlbrite.SqlBrite;
+import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -85,7 +85,7 @@ public final class ItemsFragment extends Fragment {
     return fragment;
   }
 
-  @Inject SqlBrite db;
+  @Inject BriteDatabase db;
 
   @InjectView(android.R.id.list) ListView listView;
   @InjectView(android.R.id.empty) View emptyView;

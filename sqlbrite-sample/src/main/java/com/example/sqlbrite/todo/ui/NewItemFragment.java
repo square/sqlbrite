@@ -29,7 +29,7 @@ import android.widget.EditText;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.TodoItem;
-import com.squareup.sqlbrite.SqlBrite;
+import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -56,7 +56,7 @@ public final class NewItemFragment extends DialogFragment {
 
   private final PublishSubject<String> createClicked = PublishSubject.create();
 
-  @Inject SqlBrite db;
+  @Inject BriteDatabase db;
 
   private long getListId() {
     return getArguments().getLong(KEY_LIST_ID);

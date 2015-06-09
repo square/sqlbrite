@@ -53,7 +53,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
-public final class SqlBriteTest {
+public final class BriteDatabaseTest {
   private static final Collection<String> BOTH_TABLES =
       Arrays.asList(TABLE_EMPLOYEE, TABLE_MANAGER);
   private static final String SELECT_EMPLOYEES =
@@ -66,53 +66,37 @@ public final class SqlBriteTest {
       + "JOIN " + TABLE_EMPLOYEE + " as m "
       + "ON manager." + MANAGER_ID + " = m." + ID;
 
+  private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
 
   private TestDb helper;
   private SQLiteDatabase real;
-  private SqlBrite db;
+  private BriteDatabase db;
 
   @Before public void setUp() {
     helper = new TestDb(InstrumentationRegistry.getContext());
     real = helper.getWritableDatabase();
-    db = SqlBrite.create(helper);
-    db.setLoggingEnabled(true);
+
+    SqlBrite.Logger logger = new SqlBrite.Logger() {
+      @Override public void log(String message) {
+        logs.add(message);
+      }
+    };
+    db = new BriteDatabase(helper, logger);
   }
 
   @After public void tearDown() {
     o.assertNoMoreEvents();
   }
 
-  @Test public void loggerInvalidValues() {
-    try {
-      db.setLogger(null);
-      fail();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("logger == null");
-    }
-  }
-
   @Test public void loggerEnabled() {
-    final List<String> logs = new ArrayList<>();
-    db.setLogger(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        logs.add(message);
-      }
-    });
-
+    db.setLoggingEnabled(true);
     db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
     assertThat(logs).isNotEmpty();
   }
 
   @Test public void loggerDisabled() {
-    final List<String> logs = new ArrayList<>();
     db.setLoggingEnabled(false);
-    db.setLogger(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        logs.add(message);
-      }
-    });
-
     db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
     assertThat(logs).isEmpty();
   }
