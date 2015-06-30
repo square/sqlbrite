@@ -1,8 +1,8 @@
 Change Log
 =========
 
-Version 0.2.0 *(In Development)*
---------------------------------
+Version 0.2.0 *(2015-06-30)*
+----------------------------
 
  * An `Observable<Query>` can now be created from wrapping a `ContentResolver` in order to observe
    queries from another app's content provider.
