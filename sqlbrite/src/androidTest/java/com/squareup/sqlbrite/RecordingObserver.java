@@ -19,13 +19,13 @@ import android.database.Cursor;
 import android.util.Log;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
-import rx.Observer;
+import rx.Subscriber;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.SqlBrite.Query;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-final class RecordingObserver implements Observer<Query> {
+final class RecordingObserver extends Subscriber<Query> {
   private static final Object COMPLETED = "<completed>";
   private static final String TAG = RecordingObserver.class.getSimpleName();
 
@@ -44,6 +44,10 @@ final class RecordingObserver implements Observer<Query> {
   @Override public void onNext(Query value) {
     Log.d(TAG, "onNext " + value);
     events.add(value.run());
+  }
+
+  public void doRequest(long amount) {
+    request(amount);
   }
 
   private Object takeEvent() {
@@ -71,7 +75,11 @@ final class RecordingObserver implements Observer<Query> {
   }
 
   public void assertNoMoreEvents() {
-    assertThat(events).isEmpty();
+    try {
+      assertThat(events.pollFirst(1, SECONDS)).isNull();
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   static final class CursorAssert {

@@ -25,6 +25,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import java.util.Arrays;
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
@@ -77,7 +78,7 @@ public final class BriteContentResolver {
         return contentResolver.query(uri, projection, selection, selectionArgs, sortOrder);
       }
     };
-    return Observable.create(new Observable.OnSubscribe<Query>() {
+    OnSubscribe<Query> subscribe = new OnSubscribe<Query>() {
       @Override public void call(final Subscriber<? super Query> subscriber) {
         final ContentObserver observer = new ContentObserver(contentObserverHandler) {
           @Override public void onChange(boolean selfChange) {
@@ -97,7 +98,10 @@ public final class BriteContentResolver {
           }
         }));
       }
-    }).startWith(query);
+    };
+    return Observable.create(subscribe) //
+        .startWith(query) //
+        .lift(BackpressureBufferLastOperator.<Query>instance());
   }
 
   private void log(String message, Object... args) {

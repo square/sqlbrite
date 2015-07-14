@@ -123,6 +123,52 @@ public final class BriteContentResolverTests
     assertThat(logs).isEmpty();
   }
 
+  public void testBackpressureSupported() {
+    contentResolver.insert(TABLE, values("key1", "val1"));
+    o.doRequest(2);
+
+    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    o.assertCursor()
+        .hasRow("key1", "val1")
+        .isExhausted();
+
+    contentResolver.insert(TABLE, values("key2", "val2"));
+    o.assertCursor()
+        .hasRow("key1", "val1")
+        .hasRow("key2", "val2")
+        .isExhausted();
+
+    contentResolver.insert(TABLE, values("key3", "val3"));
+    o.assertNoMoreEvents();
+
+    contentResolver.insert(TABLE, values("key4", "val4"));
+    o.assertNoMoreEvents();
+
+    o.doRequest(1);
+    o.assertCursor()
+        .hasRow("key1", "val1")
+        .hasRow("key2", "val2")
+        .hasRow("key3", "val3")
+        .hasRow("key4", "val4")
+        .isExhausted();
+
+    contentResolver.insert(TABLE, values("key5", "val5"));
+    o.assertNoMoreEvents();
+    contentResolver.insert(TABLE, values("key6", "val6"));
+    o.assertNoMoreEvents();
+
+    o.doRequest(Long.MAX_VALUE);
+    o.assertCursor()
+        .hasRow("key1", "val1")
+        .hasRow("key2", "val2")
+        .hasRow("key3", "val3")
+        .hasRow("key4", "val4")
+        .hasRow("key5", "val5")
+        .hasRow("key6", "val6")
+        .isExhausted();
+    o.assertNoMoreEvents();
+  }
+
   private ContentValues values(String key, String value) {
     ContentValues result = new ContentValues();
     result.put(KEY, key);
