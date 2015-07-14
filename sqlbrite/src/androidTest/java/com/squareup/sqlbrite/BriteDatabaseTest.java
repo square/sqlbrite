@@ -574,6 +574,51 @@ public final class BriteDatabaseTest {
     o.assertNoMoreEvents();
   }
 
+  @Test public void backpressureSupported() {
+    o.doRequest(2);
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("john", "John Johnson")
+        .isExhausted();
+
+    db.insert(TABLE_EMPLOYEE, employee("nick", "Nick Nickers"));
+    o.assertNoMoreEvents();
+
+    db.delete(TABLE_EMPLOYEE, USERNAME + "=?", "bob");
+    o.assertNoMoreEvents();
+
+    o.doRequest(1);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("john", "John Johnson")
+        .hasRow("nick", "Nick Nickers")
+        .isExhausted();
+
+    db.delete(TABLE_EMPLOYEE, USERNAME + "=?", "eve");
+    o.assertNoMoreEvents();
+    db.delete(TABLE_EMPLOYEE, USERNAME + "=?", "alice");
+    o.assertNoMoreEvents();
+
+    o.doRequest(Long.MAX_VALUE);
+    o.assertCursor()
+        .hasRow("john", "John Johnson")
+        .hasRow("nick", "Nick Nickers")
+        .isExhausted();
+    o.assertNoMoreEvents();
+  }
+
   @Test public void badQueryThrows() {
     try {
       db.query("SELECT * FROM missing");

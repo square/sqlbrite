@@ -282,7 +282,8 @@ public final class BriteDatabase implements Closeable {
             }
             return query;
           }
-        });
+        }) //
+        .lift(BackpressureBufferLastOperator.<Query>instance());
   }
 
   /**
