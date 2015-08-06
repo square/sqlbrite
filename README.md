@@ -21,7 +21,7 @@ Pass a `SQLiteOpenHelper` instance to create a `BriteDatabase`.
 BriteDatabase db = sqlBrite.wrapDatabaseHelper(openHelper);
 ```
 
-The `BriteDatabase.createQuery` method is similar to `SQLiteOpenHelper.rawQuery` except it takes an
+The `BriteDatabase.createQuery` method is similar to `SQLiteDatabase.rawQuery` except it takes an
 additional parameter of table(s) on which to listen for changes. Subscribe to the returned
 `Observable<Query>` which will immediately notify with a `Query` to run.
 
