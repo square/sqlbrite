@@ -21,6 +21,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import java.util.Arrays;
@@ -70,6 +71,7 @@ public final class BriteContentResolver {
    * @see ContentResolver#query(Uri, String[], String, String[], String)
    * @see ContentResolver#registerContentObserver(Uri, boolean, ContentObserver)
    */
+  @CheckResult
   public Observable<Query> createQuery(@NonNull final Uri uri, @Nullable final String[] projection,
       @Nullable final String selection, @Nullable final String[] selectionArgs, @Nullable
       final String sortOrder, final boolean notifyForDescendents) {
