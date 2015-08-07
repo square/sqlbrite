@@ -18,7 +18,9 @@ package com.squareup.sqlbrite;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
+import android.support.annotation.WorkerThread;
 import android.util.Log;
 
 /**
@@ -26,6 +28,7 @@ import android.util.Log;
  * the result of a query.
  */
 public final class SqlBrite {
+  @CheckResult
   public static SqlBrite create() {
     return create(new Logger() {
       @Override public void log(String message) {
@@ -34,6 +37,7 @@ public final class SqlBrite {
     });
   }
 
+  @CheckResult
   public static SqlBrite create(@NonNull Logger logger) {
     return new SqlBrite(logger);
   }
@@ -52,11 +56,13 @@ public final class SqlBrite {
    * notifications of table changes to work. See {@linkplain BriteDatabase#createQuery the
    * <code>query</code> method} for more information on that behavior.
    */
+  @CheckResult
   public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper) {
     return new BriteDatabase(helper, logger);
   }
 
   /** Wrap a {@link ContentResolver} for observable queries. */
+  @CheckResult
   public BriteContentResolver wrapContentProvider(@NonNull ContentResolver contentResolver) {
     return new BriteContentResolver(contentResolver, logger);
   }
@@ -64,6 +70,7 @@ public final class SqlBrite {
   /** An executable query. */
   public interface Query {
     /** Execute the query on the underlying database and return the resulting cursor. */
+    @CheckResult @WorkerThread
     Cursor run();
   }
 

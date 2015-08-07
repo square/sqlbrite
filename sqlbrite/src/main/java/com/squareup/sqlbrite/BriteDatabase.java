@@ -20,9 +20,11 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteTransactionListener;
+import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.io.Closeable;
 import java.io.IOException;
@@ -208,6 +210,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
+  @CheckResult
   public Observable<Query> createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
@@ -228,6 +231,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
+  @CheckResult
   public Observable<Query> createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
@@ -247,6 +251,7 @@ public final class BriteDatabase implements Closeable {
     return createQuery(tableFilter, sql, args);
   }
 
+  @CheckResult
   private Observable<Query> createQuery(final Func1<Set<String>, Boolean> tableFilter,
       final String sql, final String... args) {
     if (transactions.get() != null) {
@@ -291,6 +296,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
+  @CheckResult @WorkerThread
   public Cursor query(@NonNull String sql, @NonNull String... args) {
     if (logging) log("QUERY\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
     return getReadableDatabase().rawQuery(sql, args);
@@ -301,6 +307,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insert(String, String, ContentValues)
    */
+  @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values) {
     return insert(table, values, CONFLICT_NONE);
   }
@@ -310,6 +317,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insertWithOnConflict(String, String, ContentValues, int)
    */
+  @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -335,6 +343,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#delete(String, String, String[])
    */
+  @WorkerThread
   public int delete(@NonNull String table, @Nullable String whereClause,
       @Nullable String... whereArgs) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -360,6 +369,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#update(String, ContentValues, String, String[])
    */
+  @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @Nullable String whereClause, @Nullable String... whereArgs) {
     return update(table, values, CONFLICT_NONE, whereClause, whereArgs);
@@ -371,6 +381,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#updateWithOnConflict(String, ContentValues, String, String[], int)
    */
+  @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
       @Nullable String... whereArgs) {
@@ -402,6 +413,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#yieldIfContendedSafely()
    */
+  @WorkerThread
   public boolean yieldIfContendedSafely() {
     return getWriteableDatabase().yieldIfContendedSafely();
   }
@@ -419,6 +431,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#yieldIfContendedSafely(long)
    */
+  @WorkerThread
   public boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit) {
     return getWriteableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
   }
