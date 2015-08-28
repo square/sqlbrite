@@ -2,10 +2,10 @@ language: android
 
 android:
   components:
-    - build-tools-22.0.1
+    - build-tools-23.0.0
     - extra-android-m2repository
-    - android-22
-    - sys-img-armeabi-v7a-android-18
+    - android-23
+    - sys-img-armeabi-v7a-android-23
 
 jdk:
   - oraclejdk8

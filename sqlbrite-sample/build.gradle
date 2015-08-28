@@ -1,7 +1,7 @@
 buildscript {
   dependencies {
     classpath rootProject.ext.androidPlugin
-    classpath 'com.neenbedankt.gradle.plugins:android-apt:1.4'
+    classpath 'com.neenbedankt.gradle.plugins:android-apt:1.7'
   }
 }
 
@@ -55,7 +55,7 @@ android {
 
   defaultConfig {
     minSdkVersion 9
-    targetSdkVersion 21
+    targetSdkVersion 23
     applicationId 'com.example.sqlbrite.todo'
 
     versionCode 1
