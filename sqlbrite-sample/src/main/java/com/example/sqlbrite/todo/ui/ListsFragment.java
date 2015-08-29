@@ -115,7 +115,7 @@ public final class ListsFragment extends Fragment {
     subscription = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
         .flatMap(new Func1<SqlBrite.Query, Observable<List<ListsItem>>>() {
           @Override public Observable<List<ListsItem>> call(SqlBrite.Query query) {
-            return query.map(ListsItem.MAP).toList();
+            return query.asRows(ListsItem.MAP).toList();
           }
         })
         .subscribeOn(Schedulers.io())

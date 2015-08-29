@@ -200,7 +200,7 @@ public final class ItemsFragment extends Fragment {
     subscriptions.add(db.createQuery(TodoItem.TABLE, LIST_QUERY, listId)
         .flatMap(new Func1<Query, Observable<List<TodoItem>>>() {
           @Override public Observable<List<TodoItem>> call(Query query) {
-            return query.map(TodoItem.MAP).toList();
+            return query.asRows(TodoItem.MAP).toList();
           }
         })
         .subscribeOn(Schedulers.io())

@@ -79,20 +79,20 @@ public final class SqlBrite {
     /**
      * Execute the query on the underlying database and return an Observable of the rows queried.
      *
-     * @param map Takes in a cursor for a single row and maps it to your desired result type.
+     * @param mapper Takes in a cursor for a single row and maps it to your desired result type.
      */
-    public <T> Observable<T> map(final Func1<Cursor, T> map) {
+    public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {
       return Observable.create(new Observable.OnSubscribe<T>() {
         @Override public void call(Subscriber<? super T> subscriber) {
           Cursor cursor = run();
           try {
-            while (cursor.moveToNext()) {
-              subscriber.onNext(map.call(cursor));
+            while (cursor.moveToNext() && !subscriber.isUnsubscribed()) {
+              subscriber.onNext(mapper.call(cursor));
             }
-            subscriber.onCompleted();
           } finally {
             cursor.close();
           }
+          subscriber.onCompleted();
         }
       });
     }
