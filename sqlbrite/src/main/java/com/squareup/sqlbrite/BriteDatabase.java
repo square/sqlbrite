@@ -56,16 +56,48 @@ public final class BriteDatabase implements Closeable {
   private final SQLiteOpenHelper helper;
   private final SqlBrite.Logger logger;
 
-  private final ThreadLocal<Transaction> transactions = new ThreadLocal<>();
+  // Package-private to avoid synthetic accessor method for 'transaction' instance.
+  final ThreadLocal<SqliteTransaction> transactions = new ThreadLocal<>();
   /** Publishes sets of tables which have changed. */
   private final PublishSubject<Set<String>> triggers = PublishSubject.create();
+
+  private final Transaction transaction = new Transaction() {
+    @Override public void markSuccessful() {
+      if (logging) log("TXN SUCCESS %s", transactions.get());
+      getWriteableDatabase().setTransactionSuccessful();
+    }
+
+    @Override public boolean yieldIfContendedSafely() {
+      return getWriteableDatabase().yieldIfContendedSafely();
+    }
+
+    @Override public boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit) {
+      return getWriteableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
+    }
+
+    @Override public void end() {
+      close();
+    }
+
+    @Override public void close() {
+      SqliteTransaction transaction = transactions.get();
+      if (transaction == null) {
+        throw new IllegalStateException("Not in transaction.");
+      }
+      SqliteTransaction newTransaction = transaction.parent;
+      transactions.set(newTransaction);
+      if (logging) log("TXN END %s", transaction);
+      getWriteableDatabase().endTransaction();
+    }
+  };
 
   // Read and write guarded by 'databaseLock'. Lazily initialized. Use methods to access.
   private volatile SQLiteDatabase readableDatabase;
   private volatile SQLiteDatabase writeableDatabase;
   private final Object databaseLock = new Object();
 
-  private volatile boolean logging;
+  // Package-private to avoid synthetic accessor method for 'transaction' instance.
+  volatile boolean logging;
 
   BriteDatabase(@NonNull SQLiteOpenHelper helper, @NonNull SqlBrite.Logger logger) {
     this.helper = helper;
@@ -93,7 +125,8 @@ public final class BriteDatabase implements Closeable {
     return db;
   }
 
-  private SQLiteDatabase getWriteableDatabase() {
+  // Package-private to avoid synthetic accessor method for 'transaction' instance.
+  SQLiteDatabase getWriteableDatabase() {
     SQLiteDatabase db = writeableDatabase;
     if (db == null) {
       synchronized (databaseLock) {
@@ -108,7 +141,7 @@ public final class BriteDatabase implements Closeable {
   }
 
   private void sendTableTrigger(Set<String> tables) {
-    Transaction transaction = transactions.get();
+    SqliteTransaction transaction = transactions.get();
     if (transaction != null) {
       transaction.triggers.addAll(tables);
     } else {
@@ -123,63 +156,44 @@ public final class BriteDatabase implements Closeable {
    * Transactions may nest. If the transaction is not in progress, then a database connection is
    * obtained and a new transaction is started. Otherwise, a nested transaction is started.
    * <p>
-   * Each call to {@code beginTransaction} must be matched exactly by a call to
-   * {@link #endTransaction}. To mark a transaction as successful, call
-   * {@link #setTransactionSuccessful} before calling {@link #endTransaction}. If the transaction
-   * is not successful, or if any of its nested transactions were not successful, then the entire
-   * transaction will be rolled back when the outermost transaction is ended.
+   * Each call to {@code newTransaction} must be matched exactly by a call to
+   * {@link Transaction#end()}. To mark a transaction as successful, call
+   * {@link Transaction#markSuccessful()} before calling {@link Transaction#end()}. If the
+   * transaction is not successful, or if any of its nested transactions were not successful, then
+   * the entire transaction will be rolled back when the outermost transaction is ended.
    * <p>
    * Transactions queue up all query notifications until they have been applied.
    * <p>
    * Here is the standard idiom for transactions:
    *
    * <pre>{@code
-   * db.beginTransaction();
-   * try {
+   * try (Transaction transaction = db.newTransaction()) {
    *   ...
-   *   db.setTransactionSuccessful();
-   * } finally {
-   *   db.endTransaction();
+   *   transaction.markSuccessful();
    * }
    * }</pre>
    *
+   * Manually call {@link Transaction#end()} when try-with-resources is not available:
+   * <pre>{@code
+   * Transaction transaction = db.newTransaction();
+   * try {
+   *   ...
+   *   transaction.markSuccessful();
+   * } finally {
+   *   transaction.end();
+   * }
+   * }</pre>
+   *
+   *
    * @see SQLiteDatabase#beginTransaction()
    */
-  public void beginTransaction() {
-    Transaction transaction = new Transaction(transactions.get());
+  public Transaction newTransaction() {
+    SqliteTransaction transaction = new SqliteTransaction(transactions.get());
     transactions.set(transaction);
     if (logging) log("TXN BEGIN %s", transaction);
     getWriteableDatabase().beginTransactionWithListener(transaction);
-  }
 
-  /**
-   * Marks the current transaction as successful. Do not do any more database work between
-   * calling this and calling {@link #endTransaction()}. Do as little non-database work as possible
-   * in that situation too. If any errors are encountered between this and
-   * {@link #endTransaction()} the transaction will still be committed.
-   *
-   * @see SQLiteDatabase#setTransactionSuccessful()
-   */
-  public void setTransactionSuccessful() {
-    if (logging) log("TXN SUCCESS %s", transactions.get());
-    getWriteableDatabase().setTransactionSuccessful();
-  }
-
-  /**
-   * End a transaction. See {@link #beginTransaction()} for notes about how to use this and when
-   * transactions are committed and rolled back.
-   *
-   * @see SQLiteDatabase#endTransaction()
-   */
-  public void endTransaction() {
-    Transaction transaction = transactions.get();
-    if (transaction == null) {
-      throw new IllegalStateException("Not in transaction.");
-    }
-    Transaction newTransaction = transaction.parent;
-    transactions.set(newTransaction);
-    if (logging) log("TXN END %s", transaction);
-    getWriteableDatabase().endTransaction();
+    return this.transaction;
   }
 
   /**
@@ -403,37 +417,56 @@ public final class BriteDatabase implements Closeable {
     return rows;
   }
 
-  /**
-   * Temporarily end the transaction to let other threads run. The transaction is assumed to be
-   * successful so far. Do not call setTransactionSuccessful before calling this. When this
-   * returns a new transaction will have been created but not marked as successful. This assumes
-   * that there are no nested transactions (beginTransaction has only been called once) and will
-   * throw an exception if that is not the case.
-   * @return true if the transaction was yielded
-   *
-   * @see SQLiteDatabase#yieldIfContendedSafely()
-   */
-  @WorkerThread
-  public boolean yieldIfContendedSafely() {
-    return getWriteableDatabase().yieldIfContendedSafely();
-  }
+  /** An in-progress database transaction. */
+  public interface Transaction extends Closeable {
+    /**
+     * End a transaction. See {@link #newTransaction()} for notes about how to use this and when
+     * transactions are committed and rolled back.
+     *
+     * @see SQLiteDatabase#endTransaction()
+     */
+    void end();
 
-  /**
-   * Temporarily end the transaction to let other threads run. The transaction is assumed to be
-   * successful so far. Do not call setTransactionSuccessful before calling this. When this
-   * returns a new transaction will have been created but not marked as successful. This assumes
-   * that there are no nested transactions (beginTransaction has only been called once) and will
-   * throw an exception if that is not the case.
-   * @param sleepAmount if > 0, sleep this long before starting a new transaction if
-   *   the lock was actually yielded. This will allow other background threads to make some
-   *   more progress than they would if we started the transaction immediately.
-   * @return true if the transaction was yielded
-   *
-   * @see SQLiteDatabase#yieldIfContendedSafely(long)
-   */
-  @WorkerThread
-  public boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit) {
-    return getWriteableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
+    /**
+     * Marks the current transaction as successful. Do not do any more database work between
+     * calling this and calling {@link #end()}. Do as little non-database work as possible in that
+     * situation too. If any errors are encountered between this and {@link #end()} the transaction
+     * will still be committed.
+     *
+     * @see SQLiteDatabase#setTransactionSuccessful()
+     */
+    void markSuccessful();
+
+    /**
+     * Temporarily end the transaction to let other threads run. The transaction is assumed to be
+     * successful so far. Do not call {@link #markSuccessful()} before calling this. When this
+     * returns a new transaction will have been created but not marked as successful. This assumes
+     * that there are no nested transactions (newTransaction has only been called once) and will
+     * throw an exception if that is not the case.
+     *
+     * @return true if the transaction was yielded
+     *
+     * @see SQLiteDatabase#yieldIfContendedSafely()
+     */
+    @WorkerThread
+    boolean yieldIfContendedSafely();
+
+    /**
+     * Temporarily end the transaction to let other threads run. The transaction is assumed to be
+     * successful so far. Do not call {@link #markSuccessful()} before calling this. When this
+     * returns a new transaction will have been created but not marked as successful. This assumes
+     * that there are no nested transactions (newTransaction has only been called once) and will
+     * throw an exception if that is not the case.
+     *
+     * @param sleepAmount if > 0, sleep this long before starting a new transaction if
+     *   the lock was actually yielded. This will allow other background threads to make some
+     *   more progress than they would if we started the transaction immediately.
+     * @return true if the transaction was yielded
+     *
+     * @see SQLiteDatabase#yieldIfContendedSafely(long)
+     */
+    @WorkerThread
+    boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit);
   }
 
   @IntDef({
@@ -472,11 +505,11 @@ public final class BriteDatabase implements Closeable {
     }
   }
 
-  private final class Transaction implements SQLiteTransactionListener {
-    final Transaction parent;
+  private final class SqliteTransaction implements SQLiteTransactionListener {
+    final SqliteTransaction parent;
     final Set<String> triggers = new LinkedHashSet<>();
 
-    Transaction(Transaction parent) {
+    SqliteTransaction(SqliteTransaction parent) {
       this.parent = parent;
     }
 
