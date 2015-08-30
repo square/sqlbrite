@@ -16,16 +16,17 @@
 package com.example.sqlbrite.todo.ui;
 
 import android.database.Cursor;
-import auto.parcel.AutoParcel;
+import android.os.Parcelable;
 import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
+import com.google.auto.value.AutoValue;
 import java.util.Arrays;
 import java.util.Collection;
 import rx.functions.Func1;
 
-@AutoParcel
-abstract class ListsItem {
+@AutoValue
+abstract class ListsItem implements Parcelable {
   private static String ALIAS_LIST = "list";
   private static String ALIAS_ITEM = "item";
 
@@ -51,7 +52,7 @@ abstract class ListsItem {
       long id = Db.getLong(cursor, TodoList.ID);
       String name = Db.getString(cursor, TodoList.NAME);
       int itemCount = Db.getInt(cursor, ITEM_COUNT);
-      return new AutoParcel_ListsItem(id, name, itemCount);
+      return new AutoValue_ListsItem(id, name, itemCount);
     }
   };
 }

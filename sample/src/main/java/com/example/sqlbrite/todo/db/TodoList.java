@@ -17,14 +17,15 @@ package com.example.sqlbrite.todo.db;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import auto.parcel.AutoParcel;
+import android.os.Parcelable;
+import com.google.auto.value.AutoValue;
 import java.util.ArrayList;
 import java.util.List;
 import rx.functions.Func1;
 
 // Note: normally I wouldn't prefix table classes but I didn't want 'List' to be overloaded.
-@AutoParcel
-public abstract class TodoList {
+@AutoValue
+public abstract class TodoList implements Parcelable {
   public static final String TABLE = "todo_list";
 
   public static final String ID = "_id";
@@ -44,7 +45,7 @@ public abstract class TodoList {
           long id = Db.getLong(cursor, ID);
           String name = Db.getString(cursor, NAME);
           boolean archived = Db.getBoolean(cursor, ARCHIVED);
-          values.add(new AutoParcel_TodoList(id, name, archived));
+          values.add(new AutoValue_TodoList(id, name, archived));
         }
         return values;
       } finally {

@@ -27,8 +27,8 @@ ext {
   // Third-party dependencies.
   butterKnife = 'com.jakewharton:butterknife:6.1.0'
   timber = 'com.jakewharton.timber:timber:2.7.1'
-  autoParcel = 'com.github.frankiesardo:auto-parcel:0.3'
-  autoParcelProcessor = 'com.github.frankiesardo:auto-parcel-processor:0.3'
+  autoValue = 'com.google.auto.value:auto-value:1.2-rc1'
+  autoValueParcel = 'com.ryanharter.auto.value:auto-value-parcel:0.2.0'
   rxJava = 'io.reactivex:rxjava:1.1.0'
   rxAndroid = 'io.reactivex:rxandroid:1.0.1'
   rxBinding = 'com.jakewharton.rxbinding:rxbinding:0.2.0'

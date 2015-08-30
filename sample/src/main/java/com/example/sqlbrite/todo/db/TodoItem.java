@@ -17,11 +17,12 @@ package com.example.sqlbrite.todo.db;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import auto.parcel.AutoParcel;
+import android.os.Parcelable;
+import com.google.auto.value.AutoValue;
 import rx.functions.Func1;
 
-@AutoParcel
-public abstract class TodoItem {
+@AutoValue
+public abstract class TodoItem implements Parcelable {
   public static final String TABLE = "todo_item";
 
   public static final String ID = "_id";
@@ -40,7 +41,7 @@ public abstract class TodoItem {
       long listId = Db.getLong(cursor, LIST_ID);
       String description = Db.getString(cursor, DESCRIPTION);
       boolean complete = Db.getBoolean(cursor, COMPLETE);
-      return new AutoParcel_TodoItem(id, listId, description, complete);
+      return new AutoValue_TodoItem(id, listId, description, complete);
     }
   };
 
