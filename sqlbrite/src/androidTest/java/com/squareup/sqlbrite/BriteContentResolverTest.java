@@ -31,8 +31,8 @@ import rx.subscriptions.Subscriptions;
 
 import static com.google.common.truth.Truth.assertThat;
 
-public final class BriteContentResolverTests
-    extends ProviderTestCase2<BriteContentResolverTests.TestContentProvider> {
+public final class BriteContentResolverTest
+    extends ProviderTestCase2<BriteContentResolverTest.TestContentProvider> {
   private static final Uri AUTHORITY = Uri.parse("content://test_authority");
   private static final Uri TABLE = AUTHORITY.buildUpon().appendPath("test_table").build();
   private static final String KEY = "test_key";
@@ -45,7 +45,7 @@ public final class BriteContentResolverTests
   private BriteContentResolver db;
   private Subscription subscription;
 
-  public BriteContentResolverTests() {
+  public BriteContentResolverTest() {
     super(TestContentProvider.class, AUTHORITY.getAuthority());
   }
 
