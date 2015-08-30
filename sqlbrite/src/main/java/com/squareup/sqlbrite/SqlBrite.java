@@ -81,6 +81,7 @@ public final class SqlBrite {
      *
      * @param mapper Takes in a cursor for a single row and maps it to your desired result type.
      */
+    @CheckResult
     public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {
       return Observable.create(new Observable.OnSubscribe<T>() {
         @Override public void call(Subscriber<? super T> subscriber) {
