@@ -1,0 +1,98 @@
+package com.squareup.sqlbrite;
+
+import android.database.Cursor;
+import android.database.MatrixCursor;
+import android.support.test.runner.AndroidJUnit4;
+import com.squareup.sqlbrite.SqlBrite.Query;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import rx.functions.Func1;
+
+import static com.google.common.truth.Truth.assertThat;
+
+@RunWith(AndroidJUnit4.class)
+public final class SqlBriteTest {
+  private static final String FIRST_NAME = "first_name";
+  private static final String LAST_NAME = "last_name";
+  private static final String[] COLUMN_NAMES = { FIRST_NAME, LAST_NAME };
+
+  @Test public void asRowsEmpty() {
+    MatrixCursor cursor = new MatrixCursor(COLUMN_NAMES);
+    Query query = new CursorQuery(cursor);
+    List<Name> names = query.asRows(Name.MAP).toList().toBlocking().first();
+    assertThat(names).isEmpty();
+  }
+
+  @Test public void asRows() {
+    MatrixCursor cursor = new MatrixCursor(COLUMN_NAMES);
+    cursor.addRow(new Object[] { "Alice", "Allison" });
+    cursor.addRow(new Object[] { "Bob", "Bobberson" });
+
+    Query query = new CursorQuery(cursor);
+    List<Name> names = query.asRows(Name.MAP).toList().toBlocking().first();
+    assertThat(names).containsExactly(new Name("Alice", "Allison"), new Name("Bob", "Bobberson"));
+  }
+
+  @Test public void asRowsStopsWhenUnsubscribed() {
+    MatrixCursor cursor = new MatrixCursor(COLUMN_NAMES);
+    cursor.addRow(new Object[] { "Alice", "Allison" });
+    cursor.addRow(new Object[] { "Bob", "Bobberson" });
+
+    Query query = new CursorQuery(cursor);
+    final AtomicInteger count = new AtomicInteger();
+    query.asRows(new Func1<Cursor, Name>() {
+      @Override public Name call(Cursor cursor) {
+        count.incrementAndGet();
+        return Name.MAP.call(cursor);
+      }
+    }).take(1).toBlocking().first();
+    assertThat(count.get()).isEqualTo(1);
+  }
+
+  static final class Name {
+    static final Func1<Cursor, Name> MAP = new Func1<Cursor, Name>() {
+      @Override public Name call(Cursor cursor) {
+        return new Name( //
+            cursor.getString(cursor.getColumnIndexOrThrow(FIRST_NAME)),
+            cursor.getString(cursor.getColumnIndexOrThrow(LAST_NAME)));
+      }
+    };
+
+    final String first;
+    final String last;
+
+    Name(String first, String last) {
+      this.first = first;
+      this.last = last;
+    }
+
+    @Override public boolean equals(Object o) {
+      if (o == this) return true;
+      if (!(o instanceof Name)) return false;
+      Name other = (Name) o;
+      return first.equals(other.first) && last.equals(other.last);
+    }
+
+    @Override public int hashCode() {
+      return first.hashCode() * 17 + last.hashCode();
+    }
+
+    @Override public String toString() {
+      return "Name[" + first + ' ' + last + ']';
+    }
+  }
+
+  static final class CursorQuery extends Query {
+    private final Cursor cursor;
+
+    CursorQuery(Cursor cursor) {
+      this.cursor = cursor;
+    }
+
+    @Override public Cursor run() {
+      return cursor;
+    }
+  }
+}
