@@ -22,6 +22,9 @@ import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.support.annotation.WorkerThread;
 import android.util.Log;
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Func1;
 
 /**
  * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
@@ -68,10 +71,31 @@ public final class SqlBrite {
   }
 
   /** An executable query. */
-  public interface Query {
+  public static abstract class Query {
     /** Execute the query on the underlying database and return the resulting cursor. */
     @CheckResult @WorkerThread
-    Cursor run();
+    public abstract Cursor run();
+
+    /**
+     * Execute the query on the underlying database and return an Observable of the rows queried.
+     *
+     * @param mapper Takes in a cursor for a single row and maps it to your desired result type.
+     */
+    public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {
+      return Observable.create(new Observable.OnSubscribe<T>() {
+        @Override public void call(Subscriber<? super T> subscriber) {
+          Cursor cursor = run();
+          try {
+            while (cursor.moveToNext() && !subscriber.isUnsubscribed()) {
+              subscriber.onNext(mapper.call(cursor));
+            }
+          } finally {
+            cursor.close();
+          }
+          subscriber.onCompleted();
+        }
+      });
+    }
   }
 
   /** A simple indirection for logging debug messages. */

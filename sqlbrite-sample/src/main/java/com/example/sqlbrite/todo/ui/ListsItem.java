@@ -20,13 +20,9 @@ import auto.parcel.AutoParcel;
 import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import rx.functions.Func1;
-
-import static com.squareup.sqlbrite.SqlBrite.Query;
 
 @AutoParcel
 abstract class ListsItem {
@@ -50,21 +46,12 @@ abstract class ListsItem {
   abstract String name();
   abstract int itemCount();
 
-  static Func1<Query, List<ListsItem>> MAP = new Func1<Query, List<ListsItem>>() {
-    @Override public List<ListsItem> call(Query query) {
-      Cursor cursor = query.run();
-      try {
-        List<ListsItem> values = new ArrayList<>(cursor.getCount());
-        while (cursor.moveToNext()) {
-          long id = Db.getLong(cursor, TodoList.ID);
-          String name = Db.getString(cursor, TodoList.NAME);
-          int itemCount = Db.getInt(cursor, ITEM_COUNT);
-          values.add(new AutoParcel_ListsItem(id, name, itemCount));
-        }
-        return values;
-      } finally {
-        cursor.close();
-      }
+  static Func1<Cursor, ListsItem> MAP = new Func1<Cursor, ListsItem>() {
+    @Override public ListsItem call(Cursor cursor) {
+      long id = Db.getLong(cursor, TodoList.ID);
+      String name = Db.getString(cursor, TodoList.NAME);
+      int itemCount = Db.getInt(cursor, ITEM_COUNT);
+      return new AutoParcel_ListsItem(id, name, itemCount);
     }
   };
 }

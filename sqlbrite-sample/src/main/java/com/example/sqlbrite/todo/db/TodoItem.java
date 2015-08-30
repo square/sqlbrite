@@ -18,11 +18,7 @@ package com.example.sqlbrite.todo.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import auto.parcel.AutoParcel;
-import java.util.ArrayList;
-import java.util.List;
 import rx.functions.Func1;
-
-import static com.squareup.sqlbrite.SqlBrite.Query;
 
 @AutoParcel
 public abstract class TodoItem {
@@ -38,22 +34,13 @@ public abstract class TodoItem {
   public abstract String description();
   public abstract boolean complete();
 
-  public static final Func1<Query, List<TodoItem>> MAP = new Func1<Query, List<TodoItem>>() {
-    @Override public List<TodoItem> call(Query query) {
-      Cursor cursor = query.run();
-      try {
-        List<TodoItem> values = new ArrayList<>(cursor.getCount());
-        while (cursor.moveToNext()) {
-          long id = Db.getLong(cursor, ID);
-          long listId = Db.getLong(cursor, LIST_ID);
-          String description = Db.getString(cursor, DESCRIPTION);
-          boolean complete = Db.getBoolean(cursor, COMPLETE);
-          values.add(new AutoParcel_TodoItem(id, listId, description, complete));
-        }
-        return values;
-      } finally {
-        cursor.close();
-      }
+  public static final Func1<Cursor, TodoItem> MAP = new Func1<Cursor, TodoItem>() {
+    @Override public TodoItem call(Cursor cursor) {
+      long id = Db.getLong(cursor, ID);
+      long listId = Db.getLong(cursor, LIST_ID);
+      String description = Db.getString(cursor, DESCRIPTION);
+      boolean complete = Db.getBoolean(cursor, COMPLETE);
+      return new AutoParcel_TodoItem(id, listId, description, complete);
     }
   };
 
