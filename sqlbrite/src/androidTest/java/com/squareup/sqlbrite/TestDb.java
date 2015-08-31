@@ -17,8 +17,11 @@ package com.squareup.sqlbrite;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.support.annotation.NonNull;
+import rx.functions.Func1;
 
 final class TestDb extends SQLiteOpenHelper {
   static final String TABLE_EMPLOYEE = "employee";
@@ -28,6 +31,39 @@ final class TestDb extends SQLiteOpenHelper {
     String ID = "_id";
     String USERNAME = "username";
     String NAME = "name";
+  }
+
+  static final class Employee {
+    static final Func1<Cursor, Employee> MAPPER = new Func1<Cursor, Employee>() {
+      @Override public Employee call(Cursor cursor) {
+        return new Employee( //
+            cursor.getString(cursor.getColumnIndexOrThrow(EmployeeTable.USERNAME)),
+            cursor.getString(cursor.getColumnIndexOrThrow(EmployeeTable.NAME)));
+      }
+    };
+
+    final String username;
+    final String name;
+
+    Employee(String username, String name) {
+      this.username = username;
+      this.name = name;
+    }
+
+    @Override public boolean equals(Object o) {
+      if (o == this) return true;
+      if (!(o instanceof Employee)) return false;
+      Employee other = (Employee) o;
+      return username.equals(other.username) && name.equals(other.name);
+    }
+
+    @Override public int hashCode() {
+      return username.hashCode() * 17 + name.hashCode();
+    }
+
+    @Override public String toString() {
+      return "Employee[" + username + ' ' + name + ']';
+    }
   }
 
   interface ManagerTable {
@@ -53,7 +89,7 @@ final class TestDb extends SQLiteOpenHelper {
     super(context, null /* memory */, null /* cursor factory */, 1 /* version */);
   }
 
-  @Override public void onCreate(SQLiteDatabase db) {
+  @Override public void onCreate(@NonNull SQLiteDatabase db) {
     db.execSQL("PRAGMA foreign_keys=ON");
 
     db.execSQL(CREATE_EMPLOYEE);
@@ -79,6 +115,7 @@ final class TestDb extends SQLiteOpenHelper {
     return values;
   }
 
-  @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+  @Override public void onUpgrade(@NonNull SQLiteDatabase db, int oldVersion, int newVersion) {
+    throw new AssertionError();
   }
 }

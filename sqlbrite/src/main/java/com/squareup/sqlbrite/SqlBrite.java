@@ -77,9 +77,24 @@ public final class SqlBrite {
     public abstract Cursor run();
 
     /**
-     * Execute the query on the underlying database and return an Observable of the rows queried.
-     *
-     * @param mapper Takes in a cursor for a single row and maps it to your desired result type.
+     * Execute the query on the underlying database and return an Observable of each row mapped to
+     * {@code T} by {@code mapper}.
+     * <p>
+     * Standard usage of this operation is in {@code flatMap}:
+     * <pre>{@code
+     * flatMap(q -> q.asRows(Item.MAPPER).toList())
+     * }</pre>
+     * However, the above is a more-verbose but identical operation as
+     * {@link QueryObservable#mapToList}. This {@code asRows} method should be used when you need
+     * to limit or filter the items separate from the actual query.
+     * <pre>{@code
+     * flatMap(q -> q.asRows(Item.MAPPER).take(5).toList())
+     * // or...
+     * flatMap(q -> q.asRows(Item.MAPPER).filter(i -> i.isActive).toList())
+     * }</pre>
+     * <p>
+     * Note: Limiting results or filtering will almost always be faster in the database as part of
+     * a query and should be preferred, where possible.
      */
     @CheckResult
     public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {

@@ -36,7 +36,6 @@ import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
 import com.squareup.sqlbrite.BriteDatabase;
-import java.util.List;
 import javax.inject.Inject;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -198,11 +197,7 @@ public final class ItemsFragment extends Fragment {
             }));
 
     subscriptions.add(db.createQuery(TodoItem.TABLE, LIST_QUERY, listId)
-        .flatMap(new Func1<Query, Observable<List<TodoItem>>>() {
-          @Override public Observable<List<TodoItem>> call(Query query) {
-            return query.asRows(TodoItem.MAP).toList();
-          }
-        })
+        .mapToList(TodoItem.MAPPER)
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter));

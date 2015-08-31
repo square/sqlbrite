@@ -34,7 +34,7 @@ public abstract class TodoItem {
   public abstract String description();
   public abstract boolean complete();
 
-  public static final Func1<Cursor, TodoItem> MAP = new Func1<Cursor, TodoItem>() {
+  public static final Func1<Cursor, TodoItem> MAPPER = new Func1<Cursor, TodoItem>() {
     @Override public TodoItem call(Cursor cursor) {
       long id = Db.getLong(cursor, ID);
       long listId = Db.getLong(cursor, LIST_ID);
