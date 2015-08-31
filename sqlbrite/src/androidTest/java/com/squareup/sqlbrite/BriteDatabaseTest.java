@@ -23,6 +23,7 @@ import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import com.google.common.collect.Range;
 import com.squareup.sqlbrite.BriteDatabase.Transaction;
+import com.squareup.sqlbrite.TestDb.Employee;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -115,6 +116,17 @@ public final class BriteDatabaseTest {
         .hasRow("bob", "Bob Bobberson")
         .hasRow("eve", "Eve Evenson")
         .isExhausted();
+  }
+
+  @Test public void queryMapToList() {
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .mapToList(Employee.MAPPER)
+        .toBlocking()
+        .first();
+    assertThat(employees).containsExactly( //
+        new Employee("alice", "Alice Allison"),
+        new Employee("bob", "Bob Bobberson"),
+        new Employee("eve", "Eve Evenson"));
   }
 
   @Test public void badQueryCallsError() {

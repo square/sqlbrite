@@ -72,7 +72,7 @@ public final class BriteContentResolver {
    * @see ContentResolver#registerContentObserver(Uri, boolean, ContentObserver)
    */
   @CheckResult
-  public Observable<Query> createQuery(@NonNull final Uri uri, @Nullable final String[] projection,
+  public QueryObservable createQuery(@NonNull final Uri uri, @Nullable final String[] projection,
       @Nullable final String selection, @Nullable final String[] selectionArgs, @Nullable
       final String sortOrder, final boolean notifyForDescendents) {
     final Query query = new Query() {
@@ -101,9 +101,10 @@ public final class BriteContentResolver {
         }));
       }
     };
-    return Observable.create(subscribe) //
+    Observable<Query> queryObservable = Observable.create(subscribe) //
         .startWith(query) //
         .lift(BackpressureBufferLastOperator.<Query>instance());
+    return new QueryObservable(queryObservable);
   }
 
   private void log(String message, Object... args) {

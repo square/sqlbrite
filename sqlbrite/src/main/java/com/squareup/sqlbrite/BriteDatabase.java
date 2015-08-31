@@ -225,7 +225,7 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
   @CheckResult
-  public Observable<Query> createQuery(@NonNull final String table, @NonNull String sql,
+  public QueryObservable createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
@@ -246,7 +246,7 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
   @CheckResult
-  public Observable<Query> createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
+  public QueryObservable createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
@@ -266,7 +266,7 @@ public final class BriteDatabase implements Closeable {
   }
 
   @CheckResult
-  private Observable<Query> createQuery(final Func1<Set<String>, Boolean> tableFilter,
+  private QueryObservable createQuery(final Func1<Set<String>, Boolean> tableFilter,
       final String sql, final String... args) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
@@ -286,7 +286,7 @@ public final class BriteDatabase implements Closeable {
       }
     };
 
-    return triggers //
+    Observable<Query> queryObservable = triggers //
         .filter(tableFilter) // Only trigger on tables we care about.
         .startWith(INITIAL_TRIGGER) // Immediately execute the query for initial value.
         .map(new Func1<Set<String>, Query>() {
@@ -303,6 +303,7 @@ public final class BriteDatabase implements Closeable {
           }
         }) //
         .lift(BackpressureBufferLastOperator.<Query>instance());
+    return new QueryObservable(queryObservable);
   }
 
   /**

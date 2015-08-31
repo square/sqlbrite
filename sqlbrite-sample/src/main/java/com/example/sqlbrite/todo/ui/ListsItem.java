@@ -46,7 +46,7 @@ abstract class ListsItem {
   abstract String name();
   abstract int itemCount();
 
-  static Func1<Cursor, ListsItem> MAP = new Func1<Cursor, ListsItem>() {
+  static Func1<Cursor, ListsItem> MAPPER = new Func1<Cursor, ListsItem>() {
     @Override public ListsItem call(Cursor cursor) {
       long id = Db.getLong(cursor, TodoList.ID);
       String name = Db.getString(cursor, TodoList.NAME);

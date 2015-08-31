@@ -33,13 +33,9 @@ import butterknife.OnItemClick;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
 import com.squareup.sqlbrite.BriteDatabase;
-import com.squareup.sqlbrite.SqlBrite;
-import java.util.List;
 import javax.inject.Inject;
-import rx.Observable;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
@@ -113,11 +109,7 @@ public final class ListsFragment extends Fragment {
     getActivity().setTitle("To-Do");
 
     subscription = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
-        .flatMap(new Func1<SqlBrite.Query, Observable<List<ListsItem>>>() {
-          @Override public Observable<List<ListsItem>> call(SqlBrite.Query query) {
-            return query.asRows(ListsItem.MAP).toList();
-          }
-        })
+        .mapToList(ListsItem.MAPPER)
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter);
