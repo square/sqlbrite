@@ -36,7 +36,7 @@ public final class QueryObservable extends Observable<Query> {
    * }</pre>
    * Consider using {@link Query#asRows} if you need to limit or filter in memory.
    */
-  @CheckResult
+  @CheckResult @NonNull
   public final <T> Observable<List<T>> mapToList(@NonNull final Func1<Cursor, T> mapper) {
     return lift(new Operator<List<T>, Query>() {
       @Override

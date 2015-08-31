@@ -31,7 +31,7 @@ import rx.functions.Func1;
  * the result of a query.
  */
 public final class SqlBrite {
-  @CheckResult
+  @CheckResult @NonNull
   public static SqlBrite create() {
     return create(new Logger() {
       @Override public void log(String message) {
@@ -40,7 +40,7 @@ public final class SqlBrite {
     });
   }
 
-  @CheckResult
+  @CheckResult @NonNull
   public static SqlBrite create(@NonNull Logger logger) {
     return new SqlBrite(logger);
   }
@@ -59,13 +59,13 @@ public final class SqlBrite {
    * notifications of table changes to work. See {@linkplain BriteDatabase#createQuery the
    * <code>query</code> method} for more information on that behavior.
    */
-  @CheckResult
+  @CheckResult @NonNull
   public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper) {
     return new BriteDatabase(helper, logger);
   }
 
   /** Wrap a {@link ContentResolver} for observable queries. */
-  @CheckResult
+  @CheckResult @NonNull
   public BriteContentResolver wrapContentProvider(@NonNull ContentResolver contentResolver) {
     return new BriteContentResolver(contentResolver, logger);
   }
@@ -74,6 +74,7 @@ public final class SqlBrite {
   public static abstract class Query {
     /** Execute the query on the underlying database and return the resulting cursor. */
     @CheckResult @WorkerThread
+    // TODO Implementations might return null, which is gross. Throw?
     public abstract Cursor run();
 
     /**
@@ -96,7 +97,7 @@ public final class SqlBrite {
      * Note: Limiting results or filtering will almost always be faster in the database as part of
      * a query and should be preferred, where possible.
      */
-    @CheckResult
+    @CheckResult @NonNull
     public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {
       return Observable.create(new Observable.OnSubscribe<T>() {
         @Override public void call(Subscriber<? super T> subscriber) {

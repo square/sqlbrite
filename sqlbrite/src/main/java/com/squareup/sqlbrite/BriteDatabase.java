@@ -187,6 +187,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#beginTransaction()
    */
+  @CheckResult @NonNull
   public Transaction newTransaction() {
     SqliteTransaction transaction = new SqliteTransaction(transactions.get());
     transactions.set(transaction);
@@ -224,7 +225,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  @CheckResult
+  @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
@@ -245,7 +246,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  @CheckResult
+  @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
@@ -265,7 +266,7 @@ public final class BriteDatabase implements Closeable {
     return createQuery(tableFilter, sql, args);
   }
 
-  @CheckResult
+  @CheckResult @NonNull
   private QueryObservable createQuery(final Func1<Set<String>, Boolean> tableFilter,
       final String sql, final String... args) {
     if (transactions.get() != null) {
@@ -426,6 +427,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#endTransaction()
      */
+    @WorkerThread
     void end();
 
     /**
@@ -436,6 +438,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#setTransactionSuccessful()
      */
+    @WorkerThread
     void markSuccessful();
 
     /**
@@ -472,6 +475,7 @@ public final class BriteDatabase implements Closeable {
     /**
      * Equivalent to calling {@link #end()}
      */
+    @WorkerThread
     @Override void close();
   }
 
