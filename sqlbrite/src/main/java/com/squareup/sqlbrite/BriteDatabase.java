@@ -76,10 +76,6 @@ public final class BriteDatabase implements Closeable {
     }
 
     @Override public void end() {
-      close();
-    }
-
-    @Override public void close() {
       SqliteTransaction transaction = transactions.get();
       if (transaction == null) {
         throw new IllegalStateException("Not in transaction.");
@@ -88,6 +84,10 @@ public final class BriteDatabase implements Closeable {
       transactions.set(newTransaction);
       if (logging) log("TXN END %s", transaction);
       getWriteableDatabase().endTransaction();
+    }
+
+    @Override public void close() {
+      end();
     }
   };
 
@@ -468,6 +468,11 @@ public final class BriteDatabase implements Closeable {
      */
     @WorkerThread
     boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit);
+
+    /**
+     * Equivalent to calling {@link #end()}
+     */
+    @Override void close();
   }
 
   @IntDef({

@@ -396,6 +396,32 @@ public final class BriteDatabaseTest {
         .isExhausted();
   }
 
+  @Test public void transactionDoesNotThrow() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    Transaction transaction = db.newTransaction();
+    try {
+      db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+      db.insert(TABLE_EMPLOYEE, employee("nick", "Nick Nickers"));
+      transaction.markSuccessful();
+    } finally {
+      transaction.close(); // Transactions should not throw on close().
+    }
+
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("john", "John Johnson")
+        .hasRow("nick", "Nick Nickers")
+        .isExhausted();
+  }
+
   @Test public void queryCreatedDuringTransactionThrows() {
     db.newTransaction();
     try {
