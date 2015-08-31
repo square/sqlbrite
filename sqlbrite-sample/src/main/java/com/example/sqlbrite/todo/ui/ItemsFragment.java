@@ -35,12 +35,12 @@ import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
+import com.jakewharton.rxbinding.widget.AdapterViewItemClickEvent;
+import com.jakewharton.rxbinding.widget.RxAdapterView;
 import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.android.widget.OnItemClickEvent;
-import rx.android.widget.WidgetObservable;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -136,11 +136,10 @@ public final class ItemsFragment extends Fragment {
     listView.setEmptyView(emptyView);
     listView.setAdapter(adapter);
 
-    WidgetObservable.itemClicks(listView) //
-        .subscribeOn(AndroidSchedulers.mainThread())
+    RxAdapterView.itemClickEvents(listView) //
         .observeOn(Schedulers.io())
-        .subscribe(new Action1<OnItemClickEvent>() {
-          @Override public void call(OnItemClickEvent event) {
+        .subscribe(new Action1<AdapterViewItemClickEvent>() {
+          @Override public void call(AdapterViewItemClickEvent event) {
             boolean newValue = !adapter.getItem(event.position()).complete();
             db.update(TodoItem.TABLE, new TodoItem.Builder().complete(newValue).build(),
                 TodoItem.ID + " = ?", String.valueOf(event.id()));

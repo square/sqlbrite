@@ -29,12 +29,10 @@ import android.widget.EditText;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.TodoItem;
+import com.jakewharton.rxbinding.widget.RxTextView;
 import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.android.widget.OnTextChangeEvent;
-import rx.android.widget.WidgetObservable;
 import rx.functions.Action1;
 import rx.functions.Func2;
 import rx.schedulers.Schedulers;
@@ -72,15 +70,12 @@ public final class NewItemFragment extends DialogFragment {
     View view = LayoutInflater.from(context).inflate(R.layout.new_item, null);
 
     EditText name = findById(view, android.R.id.input);
-    Observable<OnTextChangeEvent> nameText = WidgetObservable.text(name);
-
-    Observable.combineLatest(createClicked, nameText,
-        new Func2<String, OnTextChangeEvent, String>() {
-          @Override public String call(String ignored, OnTextChangeEvent event) {
-            return event.text().toString();
+    Observable.combineLatest(createClicked, RxTextView.textChanges(name),
+        new Func2<String, CharSequence, String>() {
+          @Override public String call(String ignored, CharSequence text) {
+            return text.toString();
           }
         }) //
-        .subscribeOn(AndroidSchedulers.mainThread())
         .observeOn(Schedulers.io())
         .subscribe(new Action1<String>() {
           @Override public void call(String description) {
@@ -98,7 +93,7 @@ public final class NewItemFragment extends DialogFragment {
           }
         })
         .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-          @Override public void onClick(DialogInterface dialog, int which) {
+          @Override public void onClick(@NonNull DialogInterface dialog, int which) {
           }
         })
         .create();

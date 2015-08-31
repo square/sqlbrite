@@ -21,7 +21,9 @@ dependencies {
   // Third-party dependencies.
   compile rootProject.ext.butterKnife
   compile rootProject.ext.timber
+  compile rootProject.ext.rxJava
   compile rootProject.ext.rxAndroid
+  compile rootProject.ext.rxBinding
   compile rootProject.ext.autoParcel
   apt rootProject.ext.autoParcelProcessor
 
@@ -54,7 +56,7 @@ android {
   }
 
   defaultConfig {
-    minSdkVersion 9
+    minSdkVersion 14
     targetSdkVersion 23
     applicationId 'com.example.sqlbrite.todo'
 
