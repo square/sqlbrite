@@ -1,6 +1,16 @@
 Change Log
 =========
 
+Version 0.3.1 *(2015-09-02)*
+----------------------------
+
+ * New: `mapToOne` and `mapToOneOrNull` operators on `QueryObservable`. These work on queries which
+   return 0 or 1 rows and are a convenience for turning them into a type `T` given a mapper of type
+   `Func1<Cursor, T>` (the same which can be used for `mapToList`).
+ * Fix: Remove `@WorkerThread` annotations for now. Various combinations of lint, RxJava, and
+   retrolambda can cause false-positives.
+
+
 Version 0.3.0 *(2015-08-31)*
 ----------------------------
 
