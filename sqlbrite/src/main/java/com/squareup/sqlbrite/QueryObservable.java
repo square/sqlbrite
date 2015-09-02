@@ -4,12 +4,9 @@ import android.database.Cursor;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import com.squareup.sqlbrite.SqlBrite.Query;
-import java.util.ArrayList;
 import java.util.List;
 import rx.Observable;
 import rx.Subscriber;
-import rx.exceptions.Exceptions;
-import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func1;
 
 /** An {@link Observable} of {@link Query} which offers query-specific convenience operators. */
@@ -24,6 +21,46 @@ public final class QueryObservable extends Observable<Query> {
 
   /**
    * Given a function mapping the current row of a {@link Cursor} to {@code T}, transform each
+   * emitted {@link Query} which returns a single row to {@code T}.
+   * <p>
+   * It is an error for a query to pass through this operator with more than 1 row in its result
+   * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+   * do not emit an item.
+   * <p>
+   * This method is equivalent to:
+   * <pre>{@code
+   * flatMap(q -> q.asRows(mapper).take(1))
+   * }</pre>
+   *
+   * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+   */
+  @CheckResult @NonNull
+  public final <T> Observable<T> mapToOne(@NonNull final Func1<Cursor, T> mapper) {
+    return lift(new QueryToOneOperator<>(mapper, false));
+  }
+
+  /**
+   * Given a function mapping the current row of a {@link Cursor} to {@code T}, transform each
+   * emitted {@link Query} which returns a single row to {@code T}.
+   * <p>
+   * It is an error for a query to pass through this operator with more than 1 row in its result
+   * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+   * emit {@code null}.
+   * <p>
+   * This method is equivalent to:
+   * <pre>{@code
+   * flatMap(q -> q.asRows(mapper).take(1).defaultIfEmpty(null))
+   * }</pre>
+   *
+   * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+   */
+  @CheckResult @NonNull
+  public final <T> Observable<T> mapToOneOrNull(@NonNull final Func1<Cursor, T> mapper) {
+    return lift(new QueryToOneOperator<>(mapper, true));
+  }
+
+  /**
+   * Given a function mapping the current row of a {@link Cursor} to {@code T}, transform each
    * emitted {@link Query} to a {@code List<T>}.
    * <p>
    * Be careful using this operator as it will always consume the entire cursor and create objects
@@ -32,45 +69,14 @@ public final class QueryObservable extends Observable<Query> {
    * <p>
    * This method is equivalent to:
    * <pre>{@code
-   * flatMap(q -> q.asRows(Item.MAPPER).toList())
+   * flatMap(q -> q.asRows(mapper).toList())
    * }</pre>
    * Consider using {@link Query#asRows} if you need to limit or filter in memory.
+   *
+   * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
    */
   @CheckResult @NonNull
   public final <T> Observable<List<T>> mapToList(@NonNull final Func1<Cursor, T> mapper) {
-    return lift(new Operator<List<T>, Query>() {
-      @Override
-      public Subscriber<? super Query> call(final Subscriber<? super List<T>> subscriber) {
-        return new Subscriber<Query>(subscriber) {
-          @Override public void onNext(Query query) {
-            try {
-              Cursor cursor = query.run();
-              List<T> items = new ArrayList<>(cursor.getCount());
-              try {
-                while (cursor.moveToNext() && !subscriber.isUnsubscribed()) {
-                  items.add(mapper.call(cursor));
-                }
-              } finally {
-                cursor.close();
-              }
-              if (!subscriber.isUnsubscribed()) {
-                subscriber.onNext(items);
-              }
-            } catch (Throwable e) {
-              Exceptions.throwIfFatal(e);
-              onError(OnErrorThrowable.addValueAsLastCause(e, query));
-            }
-          }
-
-          @Override public void onCompleted() {
-            subscriber.onCompleted();
-          }
-
-          @Override public void onError(Throwable e) {
-            subscriber.onError(e);
-          }
-        };
-      }
-    });
+    return lift(new QueryToListOperator<>(mapper));
   }
 }
