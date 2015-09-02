@@ -24,7 +24,6 @@ import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.WorkerThread;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.io.Closeable;
 import java.io.IOException;
@@ -312,7 +311,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  @CheckResult @WorkerThread
+  @CheckResult // TODO @WorkerThread
   public Cursor query(@NonNull String sql, @NonNull String... args) {
     if (logging) log("QUERY\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
     return getReadableDatabase().rawQuery(sql, args);
@@ -323,7 +322,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insert(String, String, ContentValues)
    */
-  @WorkerThread
+  // TODO @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values) {
     return insert(table, values, CONFLICT_NONE);
   }
@@ -333,7 +332,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insertWithOnConflict(String, String, ContentValues, int)
    */
-  @WorkerThread
+  // TODO @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -359,7 +358,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#delete(String, String, String[])
    */
-  @WorkerThread
+  // TODO @WorkerThread
   public int delete(@NonNull String table, @Nullable String whereClause,
       @Nullable String... whereArgs) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -385,7 +384,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#update(String, ContentValues, String, String[])
    */
-  @WorkerThread
+  // TODO @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @Nullable String whereClause, @Nullable String... whereArgs) {
     return update(table, values, CONFLICT_NONE, whereClause, whereArgs);
@@ -397,7 +396,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#updateWithOnConflict(String, ContentValues, String, String[], int)
    */
-  @WorkerThread
+  // TODO @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
       @Nullable String... whereArgs) {
@@ -427,7 +426,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#endTransaction()
      */
-    @WorkerThread
+    // TODO @WorkerThread
     void end();
 
     /**
@@ -438,7 +437,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#setTransactionSuccessful()
      */
-    @WorkerThread
+    // TODO @WorkerThread
     void markSuccessful();
 
     /**
@@ -452,7 +451,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#yieldIfContendedSafely()
      */
-    @WorkerThread
+    // TODO @WorkerThread
     boolean yieldIfContendedSafely();
 
     /**
@@ -469,13 +468,13 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#yieldIfContendedSafely(long)
      */
-    @WorkerThread
+    // TODO @WorkerThread
     boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit);
 
     /**
      * Equivalent to calling {@link #end()}
      */
-    @WorkerThread
+    // TODO @WorkerThread
     @Override void close();
   }
 
