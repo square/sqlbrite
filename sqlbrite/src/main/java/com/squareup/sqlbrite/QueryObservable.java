@@ -36,7 +36,7 @@ public final class QueryObservable extends Observable<Query> {
    */
   @CheckResult @NonNull
   public final <T> Observable<T> mapToOne(@NonNull final Func1<Cursor, T> mapper) {
-    return lift(new QueryToOneOperator<>(mapper, false));
+    return lift(new QueryToOneOperator<>(mapper, false, null));
   }
 
   /**
@@ -45,18 +45,20 @@ public final class QueryObservable extends Observable<Query> {
    * <p>
    * It is an error for a query to pass through this operator with more than 1 row in its result
    * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
-   * emit {@code null}.
+   * emit {@code defaultValue}.
    * <p>
    * This method is equivalent to:
    * <pre>{@code
-   * flatMap(q -> q.asRows(mapper).take(1).defaultIfEmpty(null))
+   * flatMap(q -> q.asRows(mapper).take(1).defaultIfEmpty(defaultValue))
    * }</pre>
    *
    * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+   * @param defaultValue Value returned if result set is empty
    */
   @CheckResult @NonNull
-  public final <T> Observable<T> mapToOneOrNull(@NonNull final Func1<Cursor, T> mapper) {
-    return lift(new QueryToOneOperator<>(mapper, true));
+  public final <T> Observable<T> mapToOneOrDefault(@NonNull final Func1<Cursor, T> mapper,
+      T defaultValue) {
+    return lift(new QueryToOneOperator<>(mapper, true, defaultValue));
   }
 
   /**

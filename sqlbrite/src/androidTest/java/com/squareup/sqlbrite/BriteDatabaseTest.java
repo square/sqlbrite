@@ -145,6 +145,7 @@ public final class BriteDatabaseTest {
         db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
             .mapToList(new Func1<Cursor, Employee>() {
               private int count;
+
               @Override public Employee call(Cursor cursor) {
                 return count++ == 2 ? null : Employee.MAPPER.call(cursor);
               }
@@ -207,30 +208,38 @@ public final class BriteDatabaseTest {
     }
   }
 
-  @Test public void queryMapToOneOrNull() {
+  @Test public void queryMapToOneOrDefault() {
     Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
-        .mapToOneOrNull(Employee.MAPPER)
+        .mapToOneOrDefault(Employee.MAPPER, null)
         .toBlocking()
         .first();
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
-  @Test public void queryMapToOneOrNullEmpty() {
+  @Test public void queryMapToOneOrDefaultEmpty() {
     Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
-        .mapToOneOrNull(Employee.MAPPER)
+        .mapToOneOrDefault(Employee.MAPPER, new Employee("bob", "Bob Bobberson"))
+        .toBlocking()
+        .first();
+    assertThat(employees).isEqualTo(new Employee("bob", "Bob Bobberson"));
+  }
+
+  @Test public void queryMapToOneOrDefaultEmptyUsingNull() {
+    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
+        .mapToOneOrDefault(Employee.MAPPER, null)
         .toBlocking()
         .first();
     assertThat(employees).isNull();
   }
 
-  @Test public void queryMapToOneOrNullMapperReturnNullThrows() {
+  @Test public void queryMapToOneOrDefaultMapperReturnNullThrows() {
     BlockingObservable<Employee> employees =
         db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .mapToOneOrNull(new Func1<Cursor, Employee>() {
+            .mapToOneOrDefault(new Func1<Cursor, Employee>() {
               @Override public Employee call(Cursor cursor) {
                 return null;
               }
-            }) //
+            }, null) //
             .toBlocking();
     try {
       employees.first();
@@ -241,10 +250,10 @@ public final class BriteDatabaseTest {
     }
   }
 
-  @Test public void queryMapToOneOrNullMultipleRowsThrows() {
+  @Test public void queryMapToOneOrDefaultMultipleRowsThrows() {
     BlockingObservable<Employee> employees =
         db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
-            .mapToOneOrNull(Employee.MAPPER) //
+            .mapToOneOrDefault(Employee.MAPPER, null) //
             .toBlocking();
     try {
       employees.first();
