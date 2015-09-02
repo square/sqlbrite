@@ -20,7 +20,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
-import android.support.annotation.WorkerThread;
 import android.util.Log;
 import rx.Observable;
 import rx.Subscriber;
@@ -73,7 +72,7 @@ public final class SqlBrite {
   /** An executable query. */
   public static abstract class Query {
     /** Execute the query on the underlying database and return the resulting cursor. */
-    @CheckResult @WorkerThread
+    @CheckResult // TODO @WorkerThread
     // TODO Implementations might return null, which is gross. Throw?
     public abstract Cursor run();
 
