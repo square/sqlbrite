@@ -9,11 +9,13 @@ import rx.functions.Func1;
 
 final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Query> {
   private final Func1<Cursor, T> mapper;
-  private final boolean emitNull;
+  private boolean emitDefault;
+  private T defaultValue;
 
-  QueryToOneOperator(Func1<Cursor, T> mapper, boolean emitNull) {
+  QueryToOneOperator(Func1<Cursor, T> mapper, boolean emitDefault, T defaultValue) {
     this.mapper = mapper;
-    this.emitNull = emitNull;
+    this.emitDefault = emitDefault;
+    this.defaultValue = defaultValue;
   }
 
   @Override public Subscriber<? super SqlBrite.Query> call(final Subscriber<? super T> subscriber) {
@@ -35,8 +37,12 @@ final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Que
           } finally {
             cursor.close();
           }
-          if (!subscriber.isUnsubscribed() && (item != null || emitNull)) {
-            subscriber.onNext(item);
+          if (!subscriber.isUnsubscribed()) {
+            if (item != null) {
+              subscriber.onNext(item);
+            } else if (emitDefault) {
+              subscriber.onNext(defaultValue);
+            }
           }
         } catch (Throwable e) {
           Exceptions.throwIfFatal(e);
