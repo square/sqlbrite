@@ -219,6 +219,9 @@ public final class BriteDatabase implements Closeable {
    * {@code update}, and {@code delete} methods of this class. Unsubscribe when you no longer want
    * updates to a query.
    * <p>
+   * Note: To skip the immediate notification and only receive subsequent notifications when data
+   * has changed call {@code skip(1)} on the returned observable.
+   * <p>
    * <b>Warning:</b> this method does not perform the query! Only by subscribing to the returned
    * {@link Observable} will the operation occur.
    *
