@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import rx.Observable;
 import rx.Subscription;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.BlockingObservable;
 
@@ -501,6 +502,27 @@ public final class BriteDatabaseTest {
         .hasRow("john", "John Johnson")
         .hasRow("nick", "Nick Nickers")
         .isExhausted();
+  }
+
+  @Test public void transactionCreatedFromTransactionNotificationWorks() {
+    // Tests the case where a transaction is created in the subscriber to a query which gets
+    // notified as the result of another transaction being committed. With improper ordering, this
+    // can result in creating a new transaction before the old is committed on the underlying DB.
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .subscribe(new Action1<Query>() {
+          @Override public void call(Query query) {
+            db.newTransaction().end();
+          }
+        });
+
+    Transaction transaction = db.newTransaction();
+    try {
+      db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+      transaction.markSuccessful();
+    } finally {
+      transaction.end();
+    }
   }
 
   @Test public void transactionIsCloseable() throws IOException {

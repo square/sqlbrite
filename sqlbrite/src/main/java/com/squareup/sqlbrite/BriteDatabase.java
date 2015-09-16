@@ -83,6 +83,10 @@ public final class BriteDatabase implements Closeable {
       transactions.set(newTransaction);
       if (logging) log("TXN END %s", transaction);
       getWriteableDatabase().endTransaction();
+      // Send the triggers after ending the transaction in the DB.
+      if (transaction.commit) {
+        sendTableTrigger(transaction.triggers);
+      }
     }
 
     @Override public void close() {
@@ -517,9 +521,10 @@ public final class BriteDatabase implements Closeable {
     }
   }
 
-  private final class SqliteTransaction implements SQLiteTransactionListener {
+  private static final class SqliteTransaction implements SQLiteTransactionListener {
     final SqliteTransaction parent;
     final Set<String> triggers = new LinkedHashSet<>();
+    boolean commit;
 
     SqliteTransaction(SqliteTransaction parent) {
       this.parent = parent;
@@ -529,7 +534,7 @@ public final class BriteDatabase implements Closeable {
     }
 
     @Override public void onCommit() {
-      sendTableTrigger(triggers);
+      commit = true;
     }
 
     @Override public void onRollback() {
