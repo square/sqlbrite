@@ -85,7 +85,7 @@ public final class BriteDatabase implements Closeable {
       getWriteableDatabase().endTransaction();
       // Send the triggers after ending the transaction in the DB.
       if (transaction.commit) {
-        sendTableTrigger(transaction.triggers);
+        sendTableTrigger(transaction);
       }
     }
 
@@ -146,7 +146,7 @@ public final class BriteDatabase implements Closeable {
   private void sendTableTrigger(Set<String> tables) {
     SqliteTransaction transaction = transactions.get();
     if (transaction != null) {
-      transaction.triggers.addAll(tables);
+      transaction.addAll(tables);
     } else {
       if (logging) log("TRIGGER %s", tables);
       triggers.onNext(tables);
@@ -521,9 +521,9 @@ public final class BriteDatabase implements Closeable {
     }
   }
 
-  private static final class SqliteTransaction implements SQLiteTransactionListener {
+  static final class SqliteTransaction extends LinkedHashSet<String>
+      implements SQLiteTransactionListener {
     final SqliteTransaction parent;
-    final Set<String> triggers = new LinkedHashSet<>();
     boolean commit;
 
     SqliteTransaction(SqliteTransaction parent) {
