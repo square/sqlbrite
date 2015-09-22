@@ -1,6 +1,15 @@
 Change Log
 =========
 
+Version 0.4.0 *(2015-09-22)*
+----------------------------
+
+ * New: `mapToOneOrDefault` replaces `mapToOneOrNull` for more flexibility.
+ * Fix: Notifications of table updates as the result of a transaction now occur after the transaction
+   has been applied. Previous the notification would happen during the commit at which time it was
+   invalid to create a new transaction in a subscriber.
+
+
 Version 0.3.1 *(2015-09-02)*
 ----------------------------
 
