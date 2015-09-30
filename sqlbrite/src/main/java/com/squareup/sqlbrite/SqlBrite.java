@@ -108,7 +108,9 @@ public final class SqlBrite {
           } finally {
             cursor.close();
           }
-          subscriber.onCompleted();
+          if (!subscriber.isUnsubscribed()) {
+            subscriber.onCompleted();
+          }
         }
       });
     }
