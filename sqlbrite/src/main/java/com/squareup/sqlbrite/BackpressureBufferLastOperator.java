@@ -43,8 +43,8 @@ final class BackpressureBufferLastOperator<T> implements Operator<T, T> {
 
     private final Subscriber<? super T> child;
 
-    private volatile Object last = NONE; // Guarded by 'this'.
-    private volatile long requested; // Guarded by 'this'. Starts at zero.
+    private Object last = NONE; // Guarded by 'this'.
+    private long requested; // Guarded by 'this'. Starts at zero.
 
     final Producer producer = new Producer() {
       @Override public void request(long n) {
