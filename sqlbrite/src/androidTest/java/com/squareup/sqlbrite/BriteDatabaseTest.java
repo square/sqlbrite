@@ -17,6 +17,7 @@ package com.squareup.sqlbrite;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.support.test.InstrumentationRegistry;
@@ -474,6 +475,86 @@ public final class BriteDatabaseTest {
         .hasRow("eve", "Eve Evenson")
         .hasRow("john", "John Johnson")
         .isExhausted();
+  }
+
+  @Test public void executeSqlNoTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    db.execute("UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = 'Zach'");
+    o.assertNoMoreEvents();
+  }
+
+  @Test public void executeSqlWithArgsNoTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    db.execute("UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = ?", "Zach");
+    o.assertNoMoreEvents();
+  }
+
+  @Test public void executeSqlAndTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeAndTrigger(TABLE_EMPLOYEE,
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = 'Zach'");
+    o.assertCursor()
+        .hasRow("alice", "Zach")
+        .hasRow("bob", "Zach")
+        .hasRow("eve", "Zach")
+        .isExhausted();
+  }
+
+  @Test public void executeSqlThrowsAndDoesNotTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeAndTrigger(TABLE_EMPLOYEE,
+          "UPDATE not_a_table SET " + TestDb.EmployeeTable.NAME + " = 'Zach'");
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
+  }
+
+  @Test public void executeSqlWithArgsAndTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeAndTrigger(TABLE_EMPLOYEE,
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = ?", "Zach");
+    o.assertCursor()
+        .hasRow("alice", "Zach")
+        .hasRow("bob", "Zach")
+        .hasRow("eve", "Zach")
+        .isExhausted();
+  }
+
+  @Test public void executeSqlWithArgsThrowsAndDoesNotTrigger() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeAndTrigger(TABLE_EMPLOYEE,
+          "UPDATE not_a_table SET " + TestDb.EmployeeTable.NAME + " = ?", "Zach");
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
   }
 
   @Test public void transactionOnlyNotifiesOnce() {
