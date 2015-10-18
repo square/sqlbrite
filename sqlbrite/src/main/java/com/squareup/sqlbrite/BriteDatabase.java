@@ -425,6 +425,66 @@ public final class BriteDatabase implements Closeable {
     return rows;
   }
 
+  /**
+   * Execute {@code sql} provided it is NOT a {@code SELECT} or any other SQL statement that
+   * returns data. No data can be returned (such as the number of affected rows). Instead, use
+   * {@link #insert}, {@link #update}, et al, when possible.
+   * <p>
+   * No notifications will be sent to queries if {@code sql} affects the data of a table.
+   *
+   * @see SQLiteDatabase#execSQL(String)
+   */
+  public void execute(String sql) {
+    SQLiteDatabase db = getWriteableDatabase();
+    db.execSQL(sql);
+  }
+
+  /**
+   * Execute {@code sql} provided it is NOT a {@code SELECT} or any other SQL statement that
+   * returns data. No data can be returned (such as the number of affected rows). Instead, use
+   * {@link #insert}, {@link #update}, et al, when possible.
+   * <p>
+   * No notifications will be sent to queries if {@code sql} affects the data of a table.
+   *
+   * @see SQLiteDatabase#execSQL(String, Object[])
+   */
+  public void execute(String sql, Object... args) {
+    SQLiteDatabase db = getWriteableDatabase();
+    db.execSQL(sql, args);
+  }
+
+  /**
+   * Execute {@code sql} provided it is NOT a {@code SELECT} or any other SQL statement that
+   * returns data. No data can be returned (such as the number of affected rows). Instead, use
+   * {@link #insert}, {@link #update}, et al, when possible.
+   * <p>
+   * A notification to queries for {@code table} will be sent after the statement is executed.
+   *
+   * @see SQLiteDatabase#execSQL(String)
+   */
+  public void executeAndTrigger(String table, String sql) {
+    SQLiteDatabase db = getWriteableDatabase();
+    db.execSQL(sql);
+
+    sendTableTrigger(Collections.singleton(table));
+  }
+
+  /**
+   * Execute {@code sql} provided it is NOT a {@code SELECT} or any other SQL statement that
+   * returns data. No data can be returned (such as the number of affected rows). Instead, use
+   * {@link #insert}, {@link #update}, et al, when possible.
+   * <p>
+   * A notification to queries for {@code table} will be sent after the statement is executed.
+   *
+   * @see SQLiteDatabase#execSQL(String, Object[])
+   */
+  public void executeAndTrigger(String table, String sql, Object... args) {
+    SQLiteDatabase db = getWriteableDatabase();
+    db.execSQL(sql, args);
+
+    sendTableTrigger(Collections.singleton(table));
+  }
+
   /** An in-progress database transaction. */
   public interface Transaction extends Closeable {
     /**
