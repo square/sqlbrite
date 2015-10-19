@@ -1,6 +1,15 @@
 Change Log
 =========
 
+Version 0.4.1 *(2015-10-19)*
+----------------------------
+
+ * New: `execute` method provides the ability to execute arbitrary SQL statements.
+ * New: `executeAndTrigger` method provides the ability to execute arbitrary SQL statements and
+   notifying any queries to update on the specified table.
+ * Fix: `Query.asRows` no longer calls `onCompleted` when the downstream subscriber has unsubscribed.
+
+
 Version 0.4.0 *(2015-09-22)*
 ----------------------------
 
