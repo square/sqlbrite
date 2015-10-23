@@ -94,7 +94,7 @@ try {
   db.insert("users", createUser("jw", "Jake Wharton"));
   db.insert("users", createUser("mattp", "Matt Precious"));
   db.insert("users", createUser("strong", "Alec Strong"));
-  transaction.setSuccessful();
+  transaction.markSuccessful();
 } finally {
   transaction.end();
 }
