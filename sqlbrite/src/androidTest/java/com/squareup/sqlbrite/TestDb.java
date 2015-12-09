@@ -21,11 +21,31 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.NonNull;
+import java.util.Arrays;
+import java.util.Collection;
 import rx.functions.Func1;
+
+import static com.squareup.sqlbrite.TestDb.EmployeeTable.ID;
+import static com.squareup.sqlbrite.TestDb.EmployeeTable.NAME;
+import static com.squareup.sqlbrite.TestDb.EmployeeTable.USERNAME;
+import static com.squareup.sqlbrite.TestDb.ManagerTable.EMPLOYEE_ID;
+import static com.squareup.sqlbrite.TestDb.ManagerTable.MANAGER_ID;
 
 final class TestDb extends SQLiteOpenHelper {
   static final String TABLE_EMPLOYEE = "employee";
   static final String TABLE_MANAGER = "manager";
+
+  static final String SELECT_EMPLOYEES =
+      "SELECT " + USERNAME + ", " + NAME + " FROM " + TABLE_EMPLOYEE;
+  static final String SELECT_MANAGER_LIST = ""
+      + "SELECT e." + NAME + ", m." + NAME + " "
+      + "FROM " + TABLE_MANAGER + " AS manager "
+      + "JOIN " + TABLE_EMPLOYEE + " AS e "
+      + "ON manager." + EMPLOYEE_ID + " = e." + ID + " "
+      + "JOIN " + TABLE_EMPLOYEE + " as m "
+      + "ON manager." + MANAGER_ID + " = m." + ID;
+  static final Collection<String> BOTH_TABLES =
+      Arrays.asList(TABLE_EMPLOYEE, TABLE_MANAGER);
 
   interface EmployeeTable {
     String ID = "_id";

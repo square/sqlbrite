@@ -31,12 +31,16 @@ public final class QueryObservable extends Observable<Query> {
    * <pre>{@code
    * flatMap(q -> q.asRows(mapper).take(1))
    * }</pre>
+   * and a convenience operator for:
+   * <pre>{@code
+   * lift(Query.mapToOne(mapper))
+   * }</pre>
    *
    * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
    */
   @CheckResult @NonNull
-  public final <T> Observable<T> mapToOne(@NonNull final Func1<Cursor, T> mapper) {
-    return lift(new QueryToOneOperator<>(mapper, false, null));
+  public final <T> Observable<T> mapToOne(@NonNull Func1<Cursor, T> mapper) {
+    return lift(Query.mapToOne(mapper));
   }
 
   /**
@@ -51,14 +55,18 @@ public final class QueryObservable extends Observable<Query> {
    * <pre>{@code
    * flatMap(q -> q.asRows(mapper).take(1).defaultIfEmpty(defaultValue))
    * }</pre>
+   * and a convenience operator for:
+   * <pre>{@code
+   * lift(Query.mapToOneOrDefault(mapper, defaultValue))
+   * }</pre>
    *
    * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
    * @param defaultValue Value returned if result set is empty
    */
   @CheckResult @NonNull
-  public final <T> Observable<T> mapToOneOrDefault(@NonNull final Func1<Cursor, T> mapper,
+  public final <T> Observable<T> mapToOneOrDefault(@NonNull Func1<Cursor, T> mapper,
       T defaultValue) {
-    return lift(new QueryToOneOperator<>(mapper, true, defaultValue));
+    return lift(Query.mapToOneOrDefault(mapper, defaultValue));
   }
 
   /**
@@ -73,12 +81,17 @@ public final class QueryObservable extends Observable<Query> {
    * <pre>{@code
    * flatMap(q -> q.asRows(mapper).toList())
    * }</pre>
+   * and a convenience operator for:
+   * <pre>{@code
+   * lift(Query.mapToList(mapper))
+   * }</pre>
+   * <p>
    * Consider using {@link Query#asRows} if you need to limit or filter in memory.
    *
    * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
    */
   @CheckResult @NonNull
-  public final <T> Observable<List<T>> mapToList(@NonNull final Func1<Cursor, T> mapper) {
-    return lift(new QueryToListOperator<>(mapper));
+  public final <T> Observable<List<T>> mapToList(@NonNull Func1<Cursor, T> mapper) {
+    return lift(Query.mapToList(mapper));
   }
 }

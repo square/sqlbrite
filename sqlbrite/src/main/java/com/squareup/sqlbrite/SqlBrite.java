@@ -21,7 +21,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.util.Log;
+import java.util.List;
 import rx.Observable;
+import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Func1;
 
@@ -71,6 +73,53 @@ public final class SqlBrite {
 
   /** An executable query. */
   public static abstract class Query {
+    /**
+     * Creates an {@linkplain Operator observable operator} which transforms a query returning a
+     * single row to {@code T} using {@code mapper}.
+     * <p>
+     * It is an error for a query to pass through this operator with more than 1 row in its result
+     * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+     * do not emit an item.
+     *
+     * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+     */
+    @CheckResult @NonNull
+    public static <T> Operator<T, Query> mapToOne(@NonNull Func1<Cursor, T> mapper) {
+      return new QueryToOneOperator<>(mapper, false, null);
+    }
+
+    /**
+     * Creates an {@linkplain Operator observable operator} which transforms a query returning a
+     * single row to {@code T} using {@code mapper}.
+     * <p>
+     * It is an error for a query to pass through this operator with more than 1 row in its result
+     * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+     * emit {@code defaultValue}.
+     *
+     * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+     * @param defaultValue Value returned if result set is empty
+     */
+    @CheckResult @NonNull
+    public static <T> Operator<T, Query> mapToOneOrDefault(@NonNull Func1<Cursor, T> mapper,
+        T defaultValue) {
+      return new QueryToOneOperator<>(mapper, true, defaultValue);
+    }
+
+    /**
+     * Creates an {@linkplain Operator observable operator} which transforms a query to a
+     * {@code List<T>} using {@code mapper}.
+     * <p>
+     * Be careful using this operator as it will always consume the entire cursor and create objects
+     * for each row, every time this observable emits a new query. On tables whose queries update
+     * frequently or very large result sets this can result in the creation of many objects.
+     *
+     * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+     */
+    @CheckResult @NonNull
+    public static <T> Operator<List<T>, Query> mapToList(@NonNull Func1<Cursor, T> mapper) {
+      return new QueryToListOperator<>(mapper);
+    }
+
     /** Execute the query on the underlying database and return the resulting cursor. */
     @CheckResult // TODO @WorkerThread
     // TODO Implementations might return null, which is gross. Throw?
