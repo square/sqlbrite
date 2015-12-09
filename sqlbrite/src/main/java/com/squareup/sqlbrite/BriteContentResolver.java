@@ -106,7 +106,7 @@ public final class BriteContentResolver {
     };
     Observable<Query> queryObservable = Observable.create(subscribe) //
         .startWith(query) //
-        .lift(BackpressureBufferLastOperator.<Query>instance());
+        .onBackpressureLatest();
     return new QueryObservable(queryObservable);
   }
 

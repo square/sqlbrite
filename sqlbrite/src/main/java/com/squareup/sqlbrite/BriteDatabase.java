@@ -309,7 +309,7 @@ public final class BriteDatabase implements Closeable {
             return query;
           }
         }) //
-        .lift(BackpressureBufferLastOperator.<Query>instance());
+        .onBackpressureLatest();
     return new QueryObservable(queryObservable);
   }
 
