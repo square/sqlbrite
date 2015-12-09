@@ -29,30 +29,26 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observables.BlockingObservable;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.RecordingObserver.CursorAssert;
 import static com.squareup.sqlbrite.SqlBrite.Query;
-import static com.squareup.sqlbrite.TestDb.EmployeeTable.ID;
+import static com.squareup.sqlbrite.TestDb.BOTH_TABLES;
 import static com.squareup.sqlbrite.TestDb.EmployeeTable.NAME;
 import static com.squareup.sqlbrite.TestDb.EmployeeTable.USERNAME;
-import static com.squareup.sqlbrite.TestDb.ManagerTable.EMPLOYEE_ID;
-import static com.squareup.sqlbrite.TestDb.ManagerTable.MANAGER_ID;
+import static com.squareup.sqlbrite.TestDb.SELECT_EMPLOYEES;
+import static com.squareup.sqlbrite.TestDb.SELECT_MANAGER_LIST;
 import static com.squareup.sqlbrite.TestDb.TABLE_EMPLOYEE;
 import static com.squareup.sqlbrite.TestDb.TABLE_MANAGER;
 import static com.squareup.sqlbrite.TestDb.employee;
@@ -62,18 +58,6 @@ import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
 public final class BriteDatabaseTest {
-  private static final Collection<String> BOTH_TABLES =
-      Arrays.asList(TABLE_EMPLOYEE, TABLE_MANAGER);
-  private static final String SELECT_EMPLOYEES =
-      "SELECT " + USERNAME + ", " + NAME + " FROM " + TABLE_EMPLOYEE;
-  private static final String SELECT_MANAGER_LIST = ""
-      + "SELECT e." + NAME + ", m." + NAME + " "
-      + "FROM " + TABLE_MANAGER + " AS manager "
-      + "JOIN " + TABLE_EMPLOYEE + " AS e "
-      + "ON manager." + EMPLOYEE_ID + " = e." + ID + " "
-      + "JOIN " + TABLE_EMPLOYEE + " as m "
-      + "ON manager." + MANAGER_ID + " = m." + ID;
-
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
 
@@ -134,34 +118,6 @@ public final class BriteDatabaseTest {
         new Employee("eve", "Eve Evenson"));
   }
 
-  @Test public void queryMapToListEmpty() {
-    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
-        .mapToList(Employee.MAPPER)
-        .toBlocking()
-        .first();
-    assertThat(employees).isEmpty();
-  }
-
-  @Test public void queryMapToListMapperReturnNullThrows() {
-    BlockingObservable<List<Employee>> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .mapToList(new Func1<Cursor, Employee>() {
-              private int count;
-
-              @Override public Employee call(Cursor cursor) {
-                return count++ == 2 ? null : Employee.MAPPER.call(cursor);
-              }
-            }) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 3");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
-  }
-
   @Test public void queryMapToOne() {
     Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
         .mapToOne(Employee.MAPPER)
@@ -170,100 +126,12 @@ public final class BriteDatabaseTest {
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
-  @Ignore("How to test in black box way? Can't take(1).mapToOne() to trigger complete.") // TODO
-  @Test public void queryMapToOneEmpty() {
-    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
-        .mapToOne(Employee.MAPPER)
-        .toBlocking()
-        .first();
-  }
-
-  @Test public void queryMapToOneMapperReturnNullThrows() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .mapToOne(new Func1<Cursor, Employee>() {
-              @Override public Employee call(Cursor cursor) {
-                return null;
-              }
-            }) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 1");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
-  }
-
-  @Test public void queryMapToOneMultipleRowsThrows() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
-            .mapToOne(Employee.MAPPER) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (IllegalStateException e) {
-      assertThat(e).hasMessage("Cursor returned more than 1 row");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee LIMIT 2");
-    }
-  }
-
   @Test public void queryMapToOneOrDefault() {
     Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
         .mapToOneOrDefault(Employee.MAPPER, null)
         .toBlocking()
         .first();
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
-  }
-
-  @Test public void queryMapToOneOrDefaultEmpty() {
-    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
-        .mapToOneOrDefault(Employee.MAPPER, new Employee("bob", "Bob Bobberson"))
-        .toBlocking()
-        .first();
-    assertThat(employees).isEqualTo(new Employee("bob", "Bob Bobberson"));
-  }
-
-  @Test public void queryMapToOneOrDefaultEmptyUsingNull() {
-    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
-        .mapToOneOrDefault(Employee.MAPPER, null)
-        .toBlocking()
-        .first();
-    assertThat(employees).isNull();
-  }
-
-  @Test public void queryMapToOneOrDefaultMapperReturnNullThrows() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .mapToOneOrDefault(new Func1<Cursor, Employee>() {
-              @Override public Employee call(Cursor cursor) {
-                return null;
-              }
-            }, null) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 1");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
-  }
-
-  @Test public void queryMapToOneOrDefaultMultipleRowsThrows() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
-            .mapToOneOrDefault(Employee.MAPPER, null) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (IllegalStateException e) {
-      assertThat(e).hasMessage("Cursor returned more than 1 row");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee LIMIT 2");
-    }
   }
 
   @Test public void badQueryCallsError() {
