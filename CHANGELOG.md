@@ -1,6 +1,12 @@
 Change Log
 =========
 
+Version 0.5.0 *(In Development)*
+--------------------------------
+
+ * Requires RxJava 1.1.0 or newer.
+
+
 Version 0.4.1 *(2015-10-19)*
 ----------------------------
 

@@ -29,7 +29,7 @@ ext {
   timber = 'com.jakewharton.timber:timber:2.7.1'
   autoParcel = 'com.github.frankiesardo:auto-parcel:0.3'
   autoParcelProcessor = 'com.github.frankiesardo:auto-parcel-processor:0.3'
-  rxJava = 'io.reactivex:rxjava:1.0.14'
+  rxJava = 'io.reactivex:rxjava:1.1.0'
   rxAndroid = 'io.reactivex:rxandroid:1.0.1'
   rxBinding = 'com.jakewharton.rxbinding:rxbinding:0.2.0'
   truth = 'com.google.truth:truth:0.27'
