@@ -4,6 +4,10 @@ Change Log
 Version 0.5.0 *(In Development)*
 --------------------------------
 
+ * New: Expose `mapToOne`, `mapToOneOrDefault`, and `mapToList` as static methods on `Query`. These
+   mirror the behavior of the methods of the same name on `QueryObservable` but can be used later in
+   a stream by passing the returned `Operator` instances to `lift()` (e.g.,
+   `take(1).lift(Query.mapToOne(..))`).
  * Requires RxJava 1.1.0 or newer.
 
 
