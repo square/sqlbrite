@@ -39,12 +39,12 @@ import static com.squareup.sqlbrite.SqlBrite.Query;
  * the result of a query. Create using a {@link SqlBrite} instance.
  */
 public final class BriteContentResolver {
-  private final Handler contentObserverHandler = new Handler(Looper.getMainLooper());
+  final Handler contentObserverHandler = new Handler(Looper.getMainLooper());
 
-  private final ContentResolver contentResolver;
+  final ContentResolver contentResolver;
   private final Logger logger;
 
-  private volatile boolean logging;
+  volatile boolean logging;
 
   BriteContentResolver(@NonNull ContentResolver contentResolver, @NonNull Logger logger) {
     this.contentResolver = contentResolver;
@@ -110,7 +110,7 @@ public final class BriteContentResolver {
     return new QueryObservable(queryObservable);
   }
 
-  private void log(String message, Object... args) {
+  void log(String message, Object... args) {
     if (args.length > 0) message = String.format(message, args);
     logger.log(message);
   }

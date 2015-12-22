@@ -114,7 +114,7 @@ public final class BriteDatabase implements Closeable {
     logging = enabled;
   }
 
-  private SQLiteDatabase getReadableDatabase() {
+  SQLiteDatabase getReadableDatabase() {
     SQLiteDatabase db = readableDatabase;
     if (db == null) {
       synchronized (databaseLock) {
@@ -143,7 +143,7 @@ public final class BriteDatabase implements Closeable {
     return db;
   }
 
-  private void sendTableTrigger(Set<String> tables) {
+  void sendTableTrigger(Set<String> tables) {
     SqliteTransaction transaction = transactions.get();
     if (transaction != null) {
       transaction.addAll(tables);
@@ -557,7 +557,7 @@ public final class BriteDatabase implements Closeable {
   public @interface ConflictAlgorithm {
   }
 
-  private void log(String message, Object... args) {
+  void log(String message, Object... args) {
     if (args.length > 0) message = String.format(message, args);
     logger.log(message);
   }
