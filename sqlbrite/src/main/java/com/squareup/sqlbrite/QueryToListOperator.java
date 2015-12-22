@@ -10,7 +10,7 @@ import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func1;
 
 final class QueryToListOperator<T> implements Observable.Operator<List<T>, SqlBrite.Query> {
-  private final Func1<Cursor, T> mapper;
+  final Func1<Cursor, T> mapper;
 
   QueryToListOperator(Func1<Cursor, T> mapper) {
     this.mapper = mapper;

@@ -8,9 +8,9 @@ import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func1;
 
 final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Query> {
-  private final Func1<Cursor, T> mapper;
-  private boolean emitDefault;
-  private T defaultValue;
+  final Func1<Cursor, T> mapper;
+  boolean emitDefault;
+  T defaultValue;
 
   QueryToOneOperator(Func1<Cursor, T> mapper, boolean emitDefault, T defaultValue) {
     this.mapper = mapper;
