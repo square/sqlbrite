@@ -93,7 +93,7 @@ public final class BriteDatabaseTest {
     assertThat(logs).isEmpty();
   }
 
-  @Test public void closePropagates() throws IOException {
+  @Test public void closePropagates() {
     db.close();
     assertThat(real.isOpen()).isFalse();
   }

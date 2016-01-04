@@ -26,7 +26,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.util.Arrays;
 import java.util.Collections;
@@ -205,7 +204,7 @@ public final class BriteDatabase implements Closeable {
    * databases. This does not prevent existing observables from retaining existing references as
    * well as attempting to create new ones for new subscriptions.
    */
-  @Override public void close() throws IOException {
+  @Override public void close() {
     synchronized (databaseLock) {
       readableDatabase = null;
       writeableDatabase = null;
