@@ -33,6 +33,8 @@ import rx.subscriptions.Subscriptions;
 
 import static com.squareup.sqlbrite.SqlBrite.Logger;
 import static com.squareup.sqlbrite.SqlBrite.Query;
+import static java.lang.System.nanoTime;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * A lightweight wrapper around {@link ContentResolver} which allows for continuously observing
@@ -80,19 +82,24 @@ public final class BriteContentResolver {
       final String sortOrder, final boolean notifyForDescendents) {
     final Query query = new Query() {
       @Override public Cursor run() {
-        return contentResolver.query(uri, projection, selection, selectionArgs, sortOrder);
+        long startNanos = nanoTime();
+        Cursor cursor = contentResolver.query(uri, projection, selection, selectionArgs, sortOrder);
+        long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
+
+        if (logging) {
+          log("QUERY (%sms)\n  uri: %s\n  projection: %s\n  selection: %s\n  selectionArgs: %s\n  "
+                  + "sortOrder: %s\n  notifyForDescendents: %s", tookMillis, uri,
+              Arrays.toString(projection), selection, Arrays.toString(selectionArgs), sortOrder,
+              notifyForDescendents);
+        }
+
+        return cursor;
       }
     };
     OnSubscribe<Query> subscribe = new OnSubscribe<Query>() {
       @Override public void call(final Subscriber<? super Query> subscriber) {
         final ContentObserver observer = new ContentObserver(contentObserverHandler) {
           @Override public void onChange(boolean selfChange) {
-            if (logging) {
-              log("QUERY\n  uri: %s\n  projection: %s\n  selection: %s\n  selectionArgs: %s\n  "
-                      + "sortOrder: %s\n  notifyForDescendents: %s", uri,
-                  Arrays.toString(projection), selection, Arrays.toString(selectionArgs), sortOrder,
-                  notifyForDescendents);
-            }
             subscriber.onNext(query);
           }
         };
