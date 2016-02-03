@@ -1,8 +1,17 @@
 Change Log
 =========
 
-Version 0.5.0 *(In Development)*
---------------------------------
+Version 0.5.1 *(2016-02-03)*
+----------------------------
+
+ * New: Query logs now contain timing information on how long they took to execute. This only covers
+   the time until a `Cursor` was made available, not object mapping or delivering to subscribers.
+ * Fix: Switch query logging to happen when `Query.run` is called, not when a query is triggered.
+ * Fix: Check for subscribing inside a transaction using a more accurate primitive.
+
+
+Version 0.5.0 *(2015-12-09)*
+----------------------------
 
  * New: Expose `mapToOne`, `mapToOneOrDefault`, and `mapToList` as static methods on `Query`. These
    mirror the behavior of the methods of the same name on `QueryObservable` but can be used later in
