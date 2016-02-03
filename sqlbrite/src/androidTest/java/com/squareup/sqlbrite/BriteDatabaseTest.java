@@ -546,6 +546,16 @@ public final class BriteDatabaseTest {
     o.assertErrorContains("Cannot subscribe to observable query in a transaction.");
   }
 
+  @Test public void querySubscribedToDuringTransactionThrowsWithBackpressure() {
+    o.doRequest(0);
+
+    Observable<Query> query = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES);
+
+    db.newTransaction();
+    query.subscribe(o);
+    o.assertErrorContains("Cannot subscribe to observable query in a transaction.");
+  }
+
   @Test public void callingEndMultipleTimesThrows() {
     Transaction transaction = db.newTransaction();
     transaction.end();

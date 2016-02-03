@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import rx.Observable;
+import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
 
@@ -297,10 +298,6 @@ public final class BriteDatabase implements Closeable {
         .startWith(INITIAL_TRIGGER) // Immediately execute the query for initial value.
         .map(new Func1<Set<String>, Query>() {
           @Override public Query call(Set<String> trigger) {
-            if (transactions.get() != null) {
-              throw new IllegalStateException(
-                  "Cannot subscribe to observable query in a transaction.");
-            }
             if (logging) {
               log("QUERY\n  trigger: %s\n  tables: %s\n  sql: %s\n  args: %s", trigger, tableFilter,
                   sql, Arrays.toString(args));
@@ -308,7 +305,15 @@ public final class BriteDatabase implements Closeable {
             return query;
           }
         }) //
-        .onBackpressureLatest();
+        .onBackpressureLatest() //
+        .doOnSubscribe(new Action0() {
+          @Override public void call() {
+            if (transactions.get() != null) {
+              throw new IllegalStateException(
+                  "Cannot subscribe to observable query in a transaction.");
+            }
+          }
+        });
     return new QueryObservable(queryObservable);
   }
 
