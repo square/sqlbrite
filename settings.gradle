@@ -1,4 +1,4 @@
 include ':sqlbrite'
-include ':sqlbrite-sample'
+include ':sample'
 
 rootProject.name = 'sqlbrite-root'
