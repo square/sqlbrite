@@ -39,7 +39,7 @@ public final class BriteContentResolverTest
   private static final String VALUE = "test_value";
 
   private final List<String> logs = new ArrayList<>();
-  private final RecordingObserver o = new RecordingObserver();
+  private final RecordingObserver o = new BlockingRecordingObserver();
 
   private ContentResolver contentResolver;
   private BriteContentResolver db;

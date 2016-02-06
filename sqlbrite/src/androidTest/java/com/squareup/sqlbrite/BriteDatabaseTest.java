@@ -59,7 +59,7 @@ import static org.junit.Assert.fail;
 @RunWith(AndroidJUnit4.class)
 public final class BriteDatabaseTest {
   private final List<String> logs = new ArrayList<>();
-  private final RecordingObserver o = new RecordingObserver();
+  private RecordingObserver o = new RecordingObserver();
 
   private TestDb helper;
   private SQLiteDatabase real;
@@ -165,6 +165,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void queryObservesInsertDebounced() {
+    o = new BlockingRecordingObserver();
+
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
         .debounce(500, MILLISECONDS)
         .subscribe(o);
