@@ -23,63 +23,54 @@ import rx.Subscriber;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.SqlBrite.Query;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
-final class RecordingObserver extends Subscriber<Query> {
+class RecordingObserver extends Subscriber<Query> {
   private static final Object COMPLETED = "<completed>";
   private static final String TAG = RecordingObserver.class.getSimpleName();
 
-  private final BlockingDeque<Object> events = new LinkedBlockingDeque<>();
+  final BlockingDeque<Object> events = new LinkedBlockingDeque<>();
 
-  @Override public void onCompleted() {
+  @Override public final void onCompleted() {
     Log.d(TAG, "onCompleted");
     events.add(COMPLETED);
   }
 
-  @Override public void onError(Throwable e) {
+  @Override public final void onError(Throwable e) {
     Log.d(TAG, "onError " + e.getClass().getSimpleName() + " " + e.getMessage());
     events.add(e);
   }
 
-  @Override public void onNext(Query value) {
+  @Override public final void onNext(Query value) {
     Log.d(TAG, "onNext " + value);
     events.add(value.run());
   }
 
-  public void doRequest(long amount) {
+  public final void doRequest(long amount) {
     request(amount);
   }
 
-  private Object takeEvent() {
-    try {
-      Object item = events.pollFirst(1, SECONDS);
-      if (item == null) {
-        throw new AssertionError("Timeout expired waiting for item.");
-      }
-      return item;
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+  protected Object takeEvent() {
+    Object item = events.removeFirst();
+    if (item == null) {
+      throw new AssertionError("No items.");
     }
+    return item;
   }
 
-  public CursorAssert assertCursor() {
+  public final CursorAssert assertCursor() {
     Object event = takeEvent();
     assertThat(event).isInstanceOf(Cursor.class);
     return new CursorAssert((Cursor) event);
   }
 
-  public void assertErrorContains(String expected) {
+  public final void assertErrorContains(String expected) {
     Object event = takeEvent();
     assertThat(event).isInstanceOf(Throwable.class);
     assertThat(((Throwable) event).getMessage()).contains(expected);
   }
 
   public void assertNoMoreEvents() {
-    try {
-      assertThat(events.pollFirst(1, SECONDS)).isNull();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+    assertThat(events).isEmpty();
   }
 
   static final class CursorAssert {
