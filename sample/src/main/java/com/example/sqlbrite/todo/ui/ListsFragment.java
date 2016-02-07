@@ -36,7 +36,6 @@ import com.squareup.sqlbrite.BriteDatabase;
 import javax.inject.Inject;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
@@ -110,7 +109,6 @@ public final class ListsFragment extends Fragment {
 
     subscription = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
         .mapToList(ListsItem.MAPPER)
-        .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter);
   }

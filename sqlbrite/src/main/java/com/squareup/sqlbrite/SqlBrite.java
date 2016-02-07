@@ -24,6 +24,7 @@ import android.util.Log;
 import java.util.List;
 import rx.Observable;
 import rx.Observable.Operator;
+import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Func1;
 
@@ -59,16 +60,24 @@ public final class SqlBrite {
    * interacting with the underlying {@link SQLiteOpenHelper} and it is required for automatic
    * notifications of table changes to work. See {@linkplain BriteDatabase#createQuery the
    * <code>query</code> method} for more information on that behavior.
+   *
+   * @param scheduler The {@link Scheduler} on which items from {@link BriteDatabase#createQuery}
+   * will be emitted.
    */
-  @CheckResult @NonNull
-  public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper) {
-    return new BriteDatabase(helper, logger);
+  @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper,
+      @NonNull Scheduler scheduler) {
+    return new BriteDatabase(helper, logger, scheduler);
   }
 
-  /** Wrap a {@link ContentResolver} for observable queries. */
-  @CheckResult @NonNull
-  public BriteContentResolver wrapContentProvider(@NonNull ContentResolver contentResolver) {
-    return new BriteContentResolver(contentResolver, logger);
+  /**
+   * Wrap a {@link ContentResolver} for observable queries.
+   *
+   * @param scheduler The {@link Scheduler} on which items from
+   * {@link BriteContentResolver#createQuery} will be emitted.
+   */
+  @CheckResult @NonNull public BriteContentResolver wrapContentProvider(
+      @NonNull ContentResolver contentResolver, @NonNull Scheduler scheduler) {
+    return new BriteContentResolver(contentResolver, logger, scheduler);
   }
 
   /** An executable query. */
