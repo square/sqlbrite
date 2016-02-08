@@ -84,9 +84,9 @@ public final class BriteContentResolver {
       @Override public Cursor run() {
         long startNanos = nanoTime();
         Cursor cursor = contentResolver.query(uri, projection, selection, selectionArgs, sortOrder);
-        long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
 
         if (logging) {
+          long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
           log("QUERY (%sms)\n  uri: %s\n  projection: %s\n  selection: %s\n  selectionArgs: %s\n  "
                   + "sortOrder: %s\n  notifyForDescendents: %s", tookMillis, uri,
               Arrays.toString(projection), selection, Arrays.toString(selectionArgs), sortOrder,

@@ -288,9 +288,9 @@ public final class BriteDatabase implements Closeable {
 
         long startNanos = nanoTime();
         Cursor cursor = getReadableDatabase().rawQuery(sql, args);
-        long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
 
         if (logging) {
+          long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
           log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter, sql,
               Arrays.toString(args));
         }
