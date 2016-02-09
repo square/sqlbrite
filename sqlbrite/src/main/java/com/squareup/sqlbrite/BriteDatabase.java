@@ -33,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import rx.Observable;
+import rx.Scheduler;
 import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -52,6 +53,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * the result of a query. Create using a {@link SqlBrite} instance.
  */
 public final class BriteDatabase implements Closeable {
+  private static final Set<String> INITIAL = Collections.emptySet();
+
   private final SQLiteOpenHelper helper;
   private final SqlBrite.Logger logger;
 
@@ -99,12 +102,15 @@ public final class BriteDatabase implements Closeable {
   private volatile SQLiteDatabase writeableDatabase;
   private final Object databaseLock = new Object();
 
+  private final Scheduler scheduler;
+
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(@NonNull SQLiteOpenHelper helper, @NonNull SqlBrite.Logger logger) {
+  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger, Scheduler scheduler) {
     this.helper = helper;
     this.logger = logger;
+    this.scheduler = scheduler;
   }
 
   /**
@@ -223,6 +229,11 @@ public final class BriteDatabase implements Closeable {
    * {@code update}, and {@code delete} methods of this class. Unsubscribe when you no longer want
    * updates to a query.
    * <p>
+   * Since database triggers are inherently asynchronous, items emitted from the returned
+   * observable use the {@link Scheduler} supplied to {@link SqlBrite#wrapDatabaseHelper}. For
+   * consistency, the immediate notification sent on subscribe also uses this scheduler. As such,
+   * calling {@link Observable#subscribeOn subscribeOn} on the returned observable has no effect.
+   * <p>
    * Note: To skip the immediate notification and only receive subsequent notifications when data
    * has changed call {@code skip(1)} on the returned observable.
    * <p>
@@ -236,7 +247,7 @@ public final class BriteDatabase implements Closeable {
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
-        return triggers.contains(table);
+        return triggers == INITIAL || triggers.contains(table);
       }
 
       @Override public String toString() {
@@ -257,6 +268,9 @@ public final class BriteDatabase implements Closeable {
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
+        if (triggers == INITIAL) {
+          return true;
+        }
         for (String table : tables) {
           if (triggers.contains(table)) {
             return true;
@@ -304,13 +318,14 @@ public final class BriteDatabase implements Closeable {
     };
 
     Observable<Query> queryObservable = triggers //
+        .startWith(INITIAL) // Immediately trigger the query for initial value.
+        .observeOn(scheduler) //
         .filter(tableFilter) // Only trigger on tables we care about.
         .map(new Func1<Set<String>, Query>() {
           @Override public Query call(Set<String> trigger) {
             return query;
           }
         }) //
-        .startWith(query) // Immediately trigger the query for initial value.
         .onBackpressureLatest() //
         .doOnSubscribe(new Action0() {
           @Override public void call() {

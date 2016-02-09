@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import rx.functions.Func1;
 import rx.observables.BlockingObservable;
+import rx.schedulers.Schedulers;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.TestDb.SELECT_EMPLOYEES;
@@ -35,7 +36,7 @@ public final class QueryTest {
   @Before public void setUp() {
     SqlBrite sqlBrite = SqlBrite.create();
     TestDb helper = new TestDb(InstrumentationRegistry.getContext());
-    db = sqlBrite.wrapDatabaseHelper(helper);
+    db = sqlBrite.wrapDatabaseHelper(helper, Schedulers.immediate());
   }
 
   @Test public void mapToOne() {

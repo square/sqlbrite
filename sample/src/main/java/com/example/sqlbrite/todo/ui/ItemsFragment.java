@@ -187,7 +187,6 @@ public final class ItemsFragment extends Fragment {
             return listName + " (" + itemCount + ")";
           }
         })
-            .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(new Action1<String>() {
               @Override public void call(String title) {
@@ -197,7 +196,6 @@ public final class ItemsFragment extends Fragment {
 
     subscriptions.add(db.createQuery(TodoItem.TABLE, LIST_QUERY, listId)
         .mapToList(TodoItem.MAPPER)
-        .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter));
   }

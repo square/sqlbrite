@@ -22,6 +22,7 @@ import com.squareup.sqlbrite.SqlBrite;
 import dagger.Module;
 import dagger.Provides;
 import javax.inject.Singleton;
+import rx.schedulers.Schedulers;
 import timber.log.Timber;
 
 @Module(complete = false, library = true)
@@ -39,7 +40,7 @@ public final class DbModule {
   }
 
   @Provides @Singleton BriteDatabase provideDatabase(SqlBrite sqlBrite, SQLiteOpenHelper helper) {
-    BriteDatabase db = sqlBrite.wrapDatabaseHelper(helper);
+    BriteDatabase db = sqlBrite.wrapDatabaseHelper(helper, Schedulers.io());
     db.setLoggingEnabled(true);
     return db;
   }

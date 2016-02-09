@@ -58,6 +58,7 @@ import static org.junit.Assert.fail;
 public final class BriteDatabaseTest {
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
+  private final TestScheduler scheduler = new TestScheduler();
 
   private TestDb helper;
   private SQLiteDatabase real;
@@ -72,7 +73,7 @@ public final class BriteDatabaseTest {
         logs.add(message);
       }
     };
-    db = new BriteDatabase(helper, logger);
+    db = new BriteDatabase(helper, logger, scheduler);
   }
 
   @After public void tearDown() {
@@ -154,6 +155,29 @@ public final class BriteDatabaseTest {
         .isExhausted();
 
     db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("john", "John Johnson")
+        .isExhausted();
+  }
+
+  @Test public void queryInitialValueAndTriggerUsesScheduler() {
+    scheduler.runTasksImmediately(false);
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertNoMoreEvents();
+    scheduler.triggerActions();
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
+    o.assertNoMoreEvents();
+    scheduler.triggerActions();
     o.assertCursor()
         .hasRow("alice", "Alice Allison")
         .hasRow("bob", "Bob Bobberson")

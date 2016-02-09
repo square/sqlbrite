@@ -40,6 +40,7 @@ public final class BriteContentResolverTest
 
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new BlockingRecordingObserver();
+  private final TestScheduler scheduler = new TestScheduler();
 
   private ContentResolver contentResolver;
   private BriteContentResolver db;
@@ -59,7 +60,7 @@ public final class BriteContentResolverTest
         logs.add(message);
       }
     };
-    db = new BriteContentResolver(contentResolver, logger);
+    db = new BriteContentResolver(contentResolver, logger, scheduler);
 
     getProvider().init(getContext().getContentResolver());
   }
@@ -167,6 +168,20 @@ public final class BriteContentResolverTest
         .hasRow("key6", "val6")
         .isExhausted();
     o.assertNoMoreEvents();
+  }
+
+  public void testInitialValueAndTriggerUsesScheduler() {
+    scheduler.runTasksImmediately(false);
+
+    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    o.assertNoMoreEvents();
+    scheduler.triggerActions();
+    o.assertCursor().isExhausted();
+
+    contentResolver.insert(TABLE, values("key1", "val1"));
+    o.assertNoMoreEvents();
+    scheduler.triggerActions();
+    o.assertCursor().hasRow("key1", "val1").isExhausted();
   }
 
   private ContentValues values(String key, String value) {
