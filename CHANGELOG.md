@@ -1,6 +1,21 @@
 Change Log
 =========
 
+Version 0.6.0 *(2016-02-17)*
+----------------------------
+
+ * New: Require a `Scheduler` when wrapping a database or content provider which will be used when
+   sending query triggers. This allows the query to be run in subsequent operators without needing an
+   additional `observeOn`. It also eliminates the need to use `subscribeOn` since the supplied
+   `Scheduler` will be used for all emissions (similar to RxJava's `timer`, `interval`, etc.).
+
+   This also corrects a potential violation of the RxJava contract and potential source of bugs in that
+   all triggers will occur on the supplied `Scheduler`. Previously the initial value would trigger
+   synchronously (on the subscribing thread) while subsequent ones trigger on the thread which
+   performed the transaction. The new behavior puts the initial trigger on the same thread as all
+   subsequent triggers and also does not force transactions to block while sending triggers.
+
+
 Version 0.5.1 *(2016-02-03)*
 ----------------------------
 
