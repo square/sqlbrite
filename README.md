@@ -15,11 +15,15 @@ Create a `SqlBrite` instance which is an adapter for the library functionality.
 SqlBrite sqlBrite = SqlBrite.create();
 ```
 
-Pass a `SQLiteOpenHelper` instance to create a `BriteDatabase`.
+Pass a `SQLiteOpenHelper` instance and a `Scheduler` to create a `BriteDatabase`.
 
 ```java
-BriteDatabase db = sqlBrite.wrapDatabaseHelper(openHelper);
+BriteDatabase db = sqlBrite.wrapDatabaseHelper(openHelper, Schedulers.io());
 ```
+
+A `Scheduler` is required for a few reasons, but the most important is that query notifications can
+trigger on the thread of your choice. The query can then be run without blocking the main thread or
+the thread which caused the trigger.
 
 The `BriteDatabase.createQuery` method is similar to `SQLiteDatabase.rawQuery` except it takes an
 additional parameter of table(s) on which to listen for changes. Subscribe to the returned
@@ -136,7 +140,7 @@ of updates to tables such that you can update queries as soon as data changes.
 This library is not an ORM. It is not a type-safe query mechanism. It won't serialize the same POJOs
 you use for Gson. It's not going to perform database migrations for you.
 
-A day may come when some of those features are added, but it is not this day.
+Some of these features are offered by [SQLDelight][sqldelight] which can be used with SQLBrite.
 
 
 
@@ -173,3 +177,4 @@ License
 
 
  [snap]: https://oss.sonatype.org/content/repositories/snapshots/
+ [sqldelight]: https://github.com/square/sqldelight/
