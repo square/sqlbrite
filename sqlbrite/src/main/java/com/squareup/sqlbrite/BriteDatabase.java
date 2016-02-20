@@ -305,8 +305,8 @@ public final class BriteDatabase implements Closeable {
 
         if (logging) {
           long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
-          log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter, sql,
-              Arrays.toString(args));
+          log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter,
+              indentSql(sql), Arrays.toString(args));
         }
 
         return cursor;
@@ -350,7 +350,7 @@ public final class BriteDatabase implements Closeable {
     long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
 
     if (logging) {
-      log("QUERY (%sms)\n  sql: %s\n  args: %s", tookMillis, sql, Arrays.toString(args));
+      log("QUERY (%sms)\n  sql: %s\n  args: %s", tookMillis, indentSql(sql), Arrays.toString(args));
     }
 
     return cursor;
@@ -587,6 +587,10 @@ public final class BriteDatabase implements Closeable {
   })
   @Retention(SOURCE)
   public @interface ConflictAlgorithm {
+  }
+
+  private static String indentSql(String sql) {
+    return sql.replace("\n", "\n       ");
   }
 
   void log(String message, Object... args) {
