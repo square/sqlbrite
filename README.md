@@ -122,7 +122,7 @@ The `SqlBrite` object can also wrap a `ContentResolver` for observing a query on
 content provider.
 
 ```java
-BriteContentResolver resolver = sqlBrite.wrapContentProvider(contentResolver);
+BriteContentResolver resolver = sqlBrite.wrapContentProvider(contentResolver, Schedulers.io());
 Observable<Query> query = resolver.createQuery(/*...*/);
 ```
 
