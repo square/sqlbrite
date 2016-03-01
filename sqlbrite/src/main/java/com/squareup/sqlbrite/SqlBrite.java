@@ -20,6 +20,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import java.util.List;
 import rx.Observable;
@@ -89,6 +90,8 @@ public final class SqlBrite {
      * It is an error for a query to pass through this operator with more than 1 row in its result
      * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
      * do not emit an item.
+     * <p>
+     * This operator ignores {@code null} cursors returned from {@link #run()}.
      *
      * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
      */
@@ -104,6 +107,8 @@ public final class SqlBrite {
      * It is an error for a query to pass through this operator with more than 1 row in its result
      * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
      * emit {@code defaultValue}.
+     * <p>
+     * This operator emits {@code defaultValue} if {@code null} is returned from {@link #run()}.
      *
      * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
      * @param defaultValue Value returned if result set is empty
@@ -121,6 +126,8 @@ public final class SqlBrite {
      * Be careful using this operator as it will always consume the entire cursor and create objects
      * for each row, every time this observable emits a new query. On tables whose queries update
      * frequently or very large result sets this can result in the creation of many objects.
+     * <p>
+     * This operator ignores {@code null} cursors returned from {@link #run()}.
      *
      * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
      */
@@ -129,9 +136,17 @@ public final class SqlBrite {
       return new QueryToListOperator<>(mapper);
     }
 
-    /** Execute the query on the underlying database and return the resulting cursor. */
+    /**
+     * Execute the query on the underlying database and return the resulting cursor.
+     *
+     * @return A {@link Cursor} with query results, or {@code null} when the query could not be
+     * executed due to a problem with the underlying store. Unfortunately it is not well documented
+     * when {@code null} is returned. It usually involves a problem in communicating with the
+     * underlying store and should either be treated as failure or ignored for retry at a later
+     * time.
+     */
     @CheckResult // TODO @WorkerThread
-    // TODO Implementations might return null, which is gross. Throw?
+    @Nullable
     public abstract Cursor run();
 
     /**
@@ -153,18 +168,22 @@ public final class SqlBrite {
      * <p>
      * Note: Limiting results or filtering will almost always be faster in the database as part of
      * a query and should be preferred, where possible.
+     * <p>
+     * The resulting observable will be empty if {@code null} is returned from {@link #run()}.
      */
     @CheckResult @NonNull
     public final <T> Observable<T> asRows(final Func1<Cursor, T> mapper) {
       return Observable.create(new Observable.OnSubscribe<T>() {
         @Override public void call(Subscriber<? super T> subscriber) {
           Cursor cursor = run();
-          try {
-            while (cursor.moveToNext() && !subscriber.isUnsubscribed()) {
-              subscriber.onNext(mapper.call(cursor));
+          if (cursor != null) {
+            try {
+              while (cursor.moveToNext() && !subscriber.isUnsubscribed()) {
+                subscriber.onNext(mapper.call(cursor));
+              }
+            } finally {
+              cursor.close();
             }
-          } finally {
-            cursor.close();
           }
           if (!subscriber.isUnsubscribed()) {
             subscriber.onCompleted();

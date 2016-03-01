@@ -22,6 +22,9 @@ final class QueryToListOperator<T> implements Observable.Operator<List<T>, SqlBr
       @Override public void onNext(SqlBrite.Query query) {
         try {
           Cursor cursor = query.run();
+          if (cursor == null) {
+            return;
+          }
           List<T> items = new ArrayList<>(cursor.getCount());
           try {
             for (int i = 1; cursor.moveToNext() && !subscriber.isUnsubscribed(); i++) {
