@@ -1,6 +1,15 @@
 Change Log
 =========
 
+Version 0.6.1 *(2016-02-29)*
+----------------------------
+
+ * Fix: Apply backpressure strategy between database/content provider and the supplied `Scheduler`.
+   This guards against backpressure exceptions when the scheduler is unable to keep up with the rate
+   at which queries are being triggered.
+ * Fix: Indent the subsequent lines of a multi-line queries when logging.
+
+
 Version 0.6.0 *(2016-02-17)*
 ----------------------------
 
