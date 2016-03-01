@@ -120,9 +120,10 @@ public final class BriteContentResolver {
       }
     };
     Observable<Query> queryObservable = Observable.create(subscribe) //
+        .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .startWith(query) //
         .observeOn(scheduler) //
-        .onBackpressureLatest();
+        .onBackpressureLatest(); // Guard against uncontrollable frequency of scheduler executions.
     return new QueryObservable(queryObservable);
   }
 

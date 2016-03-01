@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import rx.Subscription;
+import rx.internal.util.RxRingBuffer;
 import rx.subscriptions.Subscriptions;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -124,7 +125,7 @@ public final class BriteContentResolverTest
     assertThat(logs).isEmpty();
   }
 
-  public void testBackpressureSupported() {
+  public void testBackpressureSupportedWhenConsumerSlow() {
     contentResolver.insert(TABLE, values("key1", "val1"));
     o.doRequest(2);
 
@@ -168,6 +169,26 @@ public final class BriteContentResolverTest
         .hasRow("key6", "val6")
         .isExhausted();
     o.assertNoMoreEvents();
+  }
+
+  public void testBackpressureSupportedWhenSchedulerSlow() {
+    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    o.assertCursor().isExhausted();
+
+    // Switch the scheduler to queue actions.
+    scheduler.runTasksImmediately(false);
+
+    // Shotgun twice as many insertions as the scheduler queue can handle.
+    for (int i = 0; i < RxRingBuffer.SIZE * 2; i++) {
+      contentResolver.insert(TABLE, values("key" + i, "val" + i));
+    }
+
+    scheduler.triggerActions();
+
+    // Assert we got all the events from the queue plus the one buffered from backpressure.
+    for (int i = 0; i < RxRingBuffer.SIZE + 1; i++) {
+      o.assertCursor(); // Ignore contents, just assert we got notified.
+    }
   }
 
   public void testInitialValueAndTriggerUsesScheduler() {

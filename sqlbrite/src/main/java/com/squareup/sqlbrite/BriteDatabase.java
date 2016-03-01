@@ -53,8 +53,6 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * the result of a query. Create using a {@link SqlBrite} instance.
  */
 public final class BriteDatabase implements Closeable {
-  private static final Set<String> INITIAL = Collections.emptySet();
-
   private final SQLiteOpenHelper helper;
   private final SqlBrite.Logger logger;
 
@@ -247,7 +245,7 @@ public final class BriteDatabase implements Closeable {
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
-        return triggers == INITIAL || triggers.contains(table);
+        return triggers.contains(table);
       }
 
       @Override public String toString() {
@@ -268,9 +266,6 @@ public final class BriteDatabase implements Closeable {
       @NonNull String... args) {
     Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
       @Override public Boolean call(Set<String> triggers) {
-        if (triggers == INITIAL) {
-          return true;
-        }
         for (String table : tables) {
           if (triggers.contains(table)) {
             return true;
@@ -318,15 +313,16 @@ public final class BriteDatabase implements Closeable {
     };
 
     Observable<Query> queryObservable = triggers //
-        .startWith(INITIAL) // Immediately trigger the query for initial value.
-        .observeOn(scheduler) //
         .filter(tableFilter) // Only trigger on tables we care about.
         .map(new Func1<Set<String>, Query>() {
           @Override public Query call(Set<String> trigger) {
             return query;
           }
         }) //
-        .onBackpressureLatest() //
+        .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
+        .startWith(query) //
+        .observeOn(scheduler) //
+        .onBackpressureLatest() // Guard against uncontrollable frequency of scheduler executions.
         .doOnSubscribe(new Action0() {
           @Override public void call() {
             if (transactions.get() != null) {

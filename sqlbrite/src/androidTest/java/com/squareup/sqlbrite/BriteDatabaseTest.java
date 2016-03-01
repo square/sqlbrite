@@ -37,6 +37,7 @@ import org.junit.runner.RunWith;
 import rx.Observable;
 import rx.Subscription;
 import rx.functions.Action1;
+import rx.internal.util.RxRingBuffer;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static com.google.common.truth.Truth.assertThat;
@@ -744,7 +745,7 @@ public final class BriteDatabaseTest {
     o.assertNoMoreEvents();
   }
 
-  @Test public void backpressureSupported() {
+  @Test public void backpressureSupportedWhenConsumerSlow() {
     o.doRequest(2);
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -787,6 +788,30 @@ public final class BriteDatabaseTest {
         .hasRow("nick", "Nick Nickers")
         .isExhausted();
     o.assertNoMoreEvents();
+  }
+
+  @Test public void backpressureSupportedWhenSchedulerSlow() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    // Switch the scheduler to queue actions.
+    scheduler.runTasksImmediately(false);
+
+    // Shotgun twice as many insertions as the scheduler queue can handle.
+    for (int i = 0; i < RxRingBuffer.SIZE * 2; i++) {
+      db.insert(TABLE_EMPLOYEE, employee("user" + i, "name" + i));
+    }
+
+    scheduler.triggerActions();
+
+    // Assert we got all the events from the queue plus the one buffered from backpressure.
+    for (int i = 0; i < RxRingBuffer.SIZE + 1; i++) {
+      o.assertCursor(); // Ignore contents, just assert we got notified.
+    }
   }
 
   @Test public void badQueryThrows() {
