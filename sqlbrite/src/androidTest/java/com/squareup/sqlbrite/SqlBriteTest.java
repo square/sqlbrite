@@ -2,6 +2,7 @@ package com.squareup.sqlbrite;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.support.annotation.Nullable;
 import android.support.test.runner.AndroidJUnit4;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import rx.functions.Func1;
+import rx.observers.TestSubscriber;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -49,6 +51,28 @@ public final class SqlBriteTest {
       }
     }).take(1).toBlocking().first();
     assertThat(count.get()).isEqualTo(1);
+  }
+
+  @Test public void asRowsEmptyWhenNullCursor() {
+    Query nully = new Query() {
+      @Nullable @Override public Cursor run() {
+        return null;
+      }
+    };
+
+    TestSubscriber<Name> subscriber = new TestSubscriber<>();
+    final AtomicInteger count = new AtomicInteger();
+    nully.asRows(new Func1<Cursor, Name>() {
+      @Override public Name call(Cursor cursor) {
+        count.incrementAndGet();
+        return Name.MAP.call(cursor);
+      }
+    }).subscribe(subscriber);
+
+    subscriber.assertNoValues();
+    subscriber.assertCompleted();
+
+    assertThat(count.get()).isEqualTo(0);
   }
 
   static final class Name {
