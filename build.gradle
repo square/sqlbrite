@@ -1,4 +1,4 @@
-subprojects {
+allprojects {
   buildscript {
     repositories {
       mavenCentral()
@@ -35,4 +35,20 @@ ext {
   truth = 'com.google.truth:truth:0.27'
   findbugsJsr305 = 'com.google.code.findbugs:jsr305:3.0.0'
   findbugsAnnotations = 'com.google.code.findbugs:annotations:3.0.0'
+}
+
+configurations {
+  osstrich
+}
+dependencies {
+  osstrich 'com.squareup.osstrich:osstrich:1.2.0'
+}
+task publishJavadoc(type: JavaExec) {
+  classpath = configurations.osstrich
+  main = 'com.squareup.osstrich.JavadocPublisher'
+  args = [
+      'build/javadoc',
+      'https://github.com/square/sqlbrite',
+      'com.squareup.sqlbrite'
+  ]
 }
