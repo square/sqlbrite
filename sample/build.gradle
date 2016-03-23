@@ -24,8 +24,10 @@ dependencies {
   compile rootProject.ext.rxJava
   compile rootProject.ext.rxAndroid
   compile rootProject.ext.rxBinding
-  compile rootProject.ext.autoParcel
-  apt rootProject.ext.autoParcelProcessor
+
+  provided rootProject.ext.autoValue
+  apt rootProject.ext.autoValue
+  apt rootProject.ext.autoValueParcel
 
   provided rootProject.ext.findbugsJsr305
   provided rootProject.ext.findbugsAnnotations
@@ -49,6 +51,8 @@ android {
 
   lintOptions {
     textOutput 'stdout'
+    textReport true
+    ignore 'InvalidPackage' // Provided AutoValue pulls in Guava and friends. Doesn't end up in APK.
   }
 
   dexOptions {
