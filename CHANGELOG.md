@@ -1,6 +1,12 @@
 Change Log
 =========
 
+Version 0.6.3 *(2016-04-13)*
+----------------------------
+
+ * `QueryObservable` constructor is now public allow instances to be created for tests.
+
+
 Version 0.6.2 *(2016-03-01)*
 ----------------------------
 
