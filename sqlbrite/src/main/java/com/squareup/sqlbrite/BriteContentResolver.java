@@ -121,11 +121,16 @@ public final class BriteContentResolver {
         subscriber.onNext(query); // Trigger initial query.
       }
     };
-    Observable<Query> queryObservable = Observable.create(subscribe) //
+    final Observable<Query> queryObservable = Observable.create(subscribe) //
         .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .observeOn(scheduler) //
         .onBackpressureLatest(); // Guard against uncontrollable frequency of scheduler executions.
-    return new QueryObservable(queryObservable);
+    // TODO switch to .extend when non-@Experimental
+    return new QueryObservable(new OnSubscribe<Query>() {
+      @Override public void call(Subscriber<? super Query> subscriber) {
+        queryObservable.unsafeSubscribe(subscriber);
+      }
+    });
   }
 
   void log(String message, Object... args) {

@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.Scheduler;
+import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.subjects.PublishSubject;
@@ -312,7 +313,7 @@ public final class BriteDatabase implements Closeable {
       }
     };
 
-    Observable<Query> queryObservable = triggers //
+    final Observable<Query> queryObservable = triggers //
         .filter(tableFilter) // Only trigger on tables we care about.
         .map(new Func1<Set<String>, Query>() {
           @Override public Query call(Set<String> trigger) {
@@ -331,7 +332,12 @@ public final class BriteDatabase implements Closeable {
             }
           }
         });
-    return new QueryObservable(queryObservable);
+    // TODO switch to .extend when non-@Experimental
+    return new QueryObservable(new Observable.OnSubscribe<Query>() {
+      @Override public void call(Subscriber<? super Query> subscriber) {
+        queryObservable.unsafeSubscribe(subscriber);
+      }
+    });
   }
 
   /**
