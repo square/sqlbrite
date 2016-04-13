@@ -6,17 +6,12 @@ import android.support.annotation.NonNull;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.util.List;
 import rx.Observable;
-import rx.Subscriber;
 import rx.functions.Func1;
 
 /** An {@link Observable} of {@link Query} which offers query-specific convenience operators. */
 public final class QueryObservable extends Observable<Query> {
-  QueryObservable(final Observable<Query> o) {
-    super(new OnSubscribe<Query>() {
-      @Override public void call(Subscriber<? super Query> subscriber) {
-        o.unsafeSubscribe(subscriber);
-      }
-    });
+  public QueryObservable(OnSubscribe<Query> func) {
+    super(func);
   }
 
   /**
