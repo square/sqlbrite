@@ -14,7 +14,7 @@ dependencies {
   compile rootProject.ext.supportV4
   compile rootProject.ext.supportAnnotations
 
-  // Square dependencies.
+  // Dagger dependencies.
   compile rootProject.ext.dagger
   apt rootProject.ext.daggerCompiler
 

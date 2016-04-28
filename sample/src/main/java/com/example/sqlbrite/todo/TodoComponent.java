@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.sqlbrite.todo.ui;
+package com.example.sqlbrite.todo;
 
-import dagger.Module;
+import com.example.sqlbrite.todo.ui.ItemsFragment;
+import com.example.sqlbrite.todo.ui.ListsFragment;
+import com.example.sqlbrite.todo.ui.NewItemFragment;
+import com.example.sqlbrite.todo.ui.NewListFragment;
+import dagger.Component;
+import javax.inject.Singleton;
 
-@Module(
-    injects = {
-        ItemsFragment.class,
-        ListsFragment.class,
-        NewItemFragment.class,
-        NewListFragment.class
-    },
-    complete = false,
-    library = true
-)
-public final class UiModule {
+@Singleton
+@Component(modules = TodoModule.class)
+public interface TodoComponent {
+
+  void inject(ListsFragment fragment);
+
+  void inject(ItemsFragment fragment);
+
+  void inject(NewItemFragment fragment);
+
+  void inject(NewListFragment fragment);
 }

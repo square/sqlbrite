@@ -62,7 +62,7 @@ public final class NewItemFragment extends DialogFragment {
 
   @Override public void onAttach(Activity activity) {
     super.onAttach(activity);
-    TodoApp.objectGraph(activity).inject(this);
+    TodoApp.getComponent(activity).inject(this);
   }
 
   @NonNull @Override public Dialog onCreateDialog(Bundle savedInstanceState) {

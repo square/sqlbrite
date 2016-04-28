@@ -104,7 +104,7 @@ public final class ItemsFragment extends Fragment {
     }
 
     super.onAttach(activity);
-    TodoApp.objectGraph(activity).inject(this);
+    TodoApp.getComponent(activity).inject(this);
     setHasOptionsMenu(true);
 
     listener = (Listener) activity;

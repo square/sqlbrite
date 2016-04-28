@@ -17,11 +17,10 @@ package com.example.sqlbrite.todo;
 
 import android.app.Application;
 import android.content.Context;
-import dagger.ObjectGraph;
 import timber.log.Timber;
 
 public final class TodoApp extends Application {
-  private ObjectGraph objectGraph;
+  private TodoComponent mainComponent;
 
   @Override public void onCreate() {
     super.onCreate();
@@ -30,10 +29,10 @@ public final class TodoApp extends Application {
       Timber.plant(new Timber.DebugTree());
     }
 
-    objectGraph = ObjectGraph.create(new TodoModule(this));
+    mainComponent = DaggerTodoComponent.builder().todoModule(new TodoModule(this)).build();
   }
 
-  public static ObjectGraph objectGraph(Context context) {
-    return ((TodoApp) context.getApplicationContext()).objectGraph;
+  public static TodoComponent getComponent(Context context) {
+    return ((TodoApp) context.getApplicationContext()).mainComponent;
   }
 }

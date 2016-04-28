@@ -20,9 +20,9 @@ ext {
   supportAnnotations = 'com.android.support:support-annotations:23.0.0'
   supportTestRunner = 'com.android.support.test:runner:0.3'
 
-  // Square dependencies.
-  dagger = 'com.squareup.dagger:dagger:1.2.2'
-  daggerCompiler = 'com.squareup.dagger:dagger-compiler:1.2.2'
+  // Dagger dependencies.
+  dagger = 'com.google.dagger:dagger:2.4'
+  daggerCompiler = 'com.google.dagger:dagger-compiler:2.4'
 
   // Third-party dependencies.
   butterKnife = 'com.jakewharton:butterknife:6.1.0'
