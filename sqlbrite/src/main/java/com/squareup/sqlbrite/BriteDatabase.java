@@ -469,6 +469,8 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String)
    */
   public void execute(String sql) {
+    if (logging) log("EXECUTE\n  sql: %s", sql);
+
     SQLiteDatabase db = getWriteableDatabase();
     db.execSQL(sql);
   }
@@ -483,6 +485,8 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
   public void execute(String sql, Object... args) {
+    if (logging) log("EXECUTE\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
+
     SQLiteDatabase db = getWriteableDatabase();
     db.execSQL(sql, args);
   }
@@ -497,8 +501,7 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String)
    */
   public void executeAndTrigger(String table, String sql) {
-    SQLiteDatabase db = getWriteableDatabase();
-    db.execSQL(sql);
+    execute(sql);
 
     sendTableTrigger(Collections.singleton(table));
   }
@@ -513,8 +516,7 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
   public void executeAndTrigger(String table, String sql, Object... args) {
-    SQLiteDatabase db = getWriteableDatabase();
-    db.execSQL(sql, args);
+    execute(sql, args);
 
     sendTableTrigger(Collections.singleton(table));
   }
