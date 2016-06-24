@@ -32,6 +32,7 @@ import rx.schedulers.Schedulers;
 import static com.google.common.truth.Truth.assertThat;
 import static com.squareup.sqlbrite.TestDb.SELECT_EMPLOYEES;
 import static com.squareup.sqlbrite.TestDb.TABLE_EMPLOYEE;
+import static org.junit.Assert.fail;
 
 public final class QueryTest {
   private BriteDatabase db;
@@ -80,6 +81,7 @@ public final class QueryTest {
             .toBlocking();
     try {
       employees.first();
+      fail();
     } catch (IllegalStateException e) {
       assertThat(e).hasMessage("Cursor returned more than 1 row");
       assertThat(e.getCause()).hasMessage(
@@ -148,6 +150,7 @@ public final class QueryTest {
             .toBlocking();
     try {
       employees.first();
+      fail();
     } catch (IllegalStateException e) {
       assertThat(e).hasMessage("Cursor returned more than 1 row");
       assertThat(e.getCause()).hasMessage(
@@ -191,24 +194,23 @@ public final class QueryTest {
     assertThat(employees).isEmpty();
   }
 
-  @Test public void mapToListThrowsOnMapperNull() {
-    BlockingObservable<List<Employee>> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .lift(Query.mapToList(new Func1<Cursor, Employee>() {
-              private int count;
+  @Test public void mapToListReturnsNullOnMapperNull() {
+    Func1<Cursor, Employee> mapToNull = new Func1<Cursor, Employee>() {
+      private int count;
 
-              @Override public Employee call(Cursor cursor) {
-                return count++ == 2 ? null : Employee.MAPPER.call(cursor);
-              }
-            })) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 3");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
+      @Override public Employee call(Cursor cursor) {
+        return count++ == 2 ? null : Employee.MAPPER.call(cursor);
+      }
+    };
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
+            .lift(Query.mapToList(mapToNull)) //
+            .toBlocking() //
+            .first();
+
+    assertThat(employees).containsExactly(
+        new Employee("alice", "Alice Allison"),
+        new Employee("bob", "Bob Bobberson"),
+        null);
   }
 
   @Test public void mapToListIgnoresNullCursor() {
