@@ -2,9 +2,11 @@ language: android
 
 android:
   components:
-    - build-tools-23.0.0
+    - tools
+    - platform-tools
+    - build-tools-24.0.0
     - extra-android-m2repository
-    - android-23
+    - android-24
     - sys-img-armeabi-v7a-android-23
 
 jdk:
