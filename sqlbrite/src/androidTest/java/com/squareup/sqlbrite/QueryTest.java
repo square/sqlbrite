@@ -50,22 +50,17 @@ public final class QueryTest {
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
-  @Test public void mapToOneThrowsOnMapperNull() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .lift(Query.mapToOne(new Func1<Cursor, Employee>() {
-              @Override public Employee call(Cursor cursor) {
-                return null;
-              }
-            })) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 1");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
+  @Test public void mapToOneAllowsMapperNull() {
+    Func1<Cursor, Employee> mapToNull = new Func1<Cursor, Employee>() {
+      @Override public Employee call(Cursor cursor) {
+        return null;
+      }
+    };
+    Employee employee = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1") //
+        .lift(Query.mapToOne(mapToNull)) //
+        .toBlocking() //
+        .first();
+    assertThat(employee).isNull();
   }
 
   @Test public void mapToOneNoOpOnNoRows() {
@@ -133,22 +128,17 @@ public final class QueryTest {
     assertThat(employees).isNull();
   }
 
-  @Test public void mapToOneOrDefaultThrowsOnMapperNull() {
-    BlockingObservable<Employee> employees =
-        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
-            .lift(Query.mapToOneOrDefault(new Func1<Cursor, Employee>() {
-              @Override public Employee call(Cursor cursor) {
-                return null;
-              }
-            }, null)) //
-            .toBlocking();
-    try {
-      employees.first();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("Mapper returned null for row 1");
-      assertThat(e.getCause()).hasMessage(
-          "OnError while emitting onNext value: SELECT username, name FROM employee");
-    }
+  @Test public void mapToOneOrDefaultAllowsMapperNull() {
+    Func1<Cursor, Employee> mapToNull = new Func1<Cursor, Employee>() {
+      @Override public Employee call(Cursor cursor) {
+        return null;
+      }
+    };
+    Employee employee = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1") //
+        .lift(Query.mapToOneOrDefault(mapToNull, new Employee("bob", "Bob Bobberson"))) //
+        .toBlocking() //
+        .first();
+    assertThat(employee).isNull();
   }
 
   @Test public void mapToOneOrDefaultThrowsOnMultipleRows() {

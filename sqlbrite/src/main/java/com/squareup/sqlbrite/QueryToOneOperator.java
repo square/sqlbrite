@@ -22,15 +22,14 @@ final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Que
     return new Subscriber<SqlBrite.Query>(subscriber) {
       @Override public void onNext(SqlBrite.Query query) {
         try {
+          boolean emit = false;
           T item = null;
           Cursor cursor = query.run();
           if (cursor != null) {
             try {
               if (cursor.moveToNext()) {
                 item = mapper.call(cursor);
-                if (item == null) {
-                  throw new NullPointerException("Mapper returned null for row 1");
-                }
+                emit = true;
                 if (cursor.moveToNext()) {
                   throw new IllegalStateException("Cursor returned more than 1 row");
                 }
@@ -40,7 +39,7 @@ final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Que
             }
           }
           if (!subscriber.isUnsubscribed()) {
-            if (item != null) {
+            if (emit) {
               subscriber.onNext(item);
             } else if (emitDefault) {
               subscriber.onNext(defaultValue);

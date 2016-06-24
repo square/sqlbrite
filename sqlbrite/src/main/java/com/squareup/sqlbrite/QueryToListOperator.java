@@ -22,17 +22,13 @@ final class QueryToListOperator<T> implements Observable.Operator<List<T>, SqlBr
       @Override public void onNext(SqlBrite.Query query) {
         try {
           Cursor cursor = query.run();
-          if (cursor == null) {
+          if (cursor == null || subscriber.isUnsubscribed()) {
             return;
           }
           List<T> items = new ArrayList<>(cursor.getCount());
           try {
-            for (int i = 1; cursor.moveToNext() && !subscriber.isUnsubscribed(); i++) {
-              T item = mapper.call(cursor);
-              if (item == null) {
-                throw new NullPointerException("Mapper returned null for row " + i);
-              }
-              items.add(item);
+            while (cursor.moveToNext()) {
+              items.add(mapper.call(cursor));
             }
           } finally {
             cursor.close();
