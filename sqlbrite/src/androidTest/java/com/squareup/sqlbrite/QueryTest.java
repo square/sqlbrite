@@ -20,10 +20,12 @@ import android.support.annotation.Nullable;
 import android.support.test.InstrumentationRegistry;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import com.squareup.sqlbrite.TestDb.Employee;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observables.BlockingObservable;
 import rx.observers.TestSubscriber;
@@ -64,14 +66,21 @@ public final class QueryTest {
     assertThat(employee).isNull();
   }
 
-  @Test public void mapToOneNoOpOnNoRows() {
+  @Test public void mapToOneNoOpAndReRequestOnNoRows() {
+    final List<Long> requests = new ArrayList<>();
     List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
         .take(1)
+        .doOnRequest(new Action1<Long>() {
+          @Override public void call(Long n) {
+            requests.add(n);
+          }
+        })
         .lift(Query.mapToOne(Employee.MAPPER))
         .toList()
         .toBlocking()
         .first();
     assertThat(employees).isEmpty();
+    assertThat(requests).containsExactly(Long.MAX_VALUE, 1L);
   }
 
   @Test public void mapToOneThrowsOnMultipleRows() {
@@ -113,13 +122,22 @@ public final class QueryTest {
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
-  @Test public void mapToOneOrDefaultReturnsDefaultWhenNoRows() {
+  @Test public void mapToOneOrDefaultReturnsDefaultAndDoesNotReRequestWhenNoRows() {
+    final List<Long> requests = new ArrayList<>();
     Employee defaultEmployee = new Employee("bob", "Bob Bobberson");
-    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
+        .take(1)
+        .doOnRequest(new Action1<Long>() {
+          @Override public void call(Long n) {
+            requests.add(n);
+          }
+        })
         .lift(Query.mapToOneOrDefault(Employee.MAPPER, defaultEmployee))
+        .toList()
         .toBlocking()
         .first();
-    assertThat(employees).isSameAs(defaultEmployee);
+    assertThat(employees).containsExactly(defaultEmployee);
+    assertThat(requests).containsExactly(Long.MAX_VALUE);
   }
 
   @Test public void mapToOneOrDefaultAllowsNullDefault() {

@@ -43,6 +43,8 @@ final class QueryToOneOperator<T> implements Observable.Operator<T, SqlBrite.Que
               subscriber.onNext(item);
             } else if (emitDefault) {
               subscriber.onNext(defaultValue);
+            } else {
+              request(1L); // Account upstream for the lack of downstream emission.
             }
           }
         } catch (Throwable e) {
