@@ -1,6 +1,16 @@
 Change Log
 =========
 
+Version 0.7.0 *(2016-07-06)*
+----------------------------
+
+ * New: Allow `mapTo*` mappers to return `null` values. This is useful when querying on a single,
+   nullable column for which `null` is a valid value.
+ * Fix: When `mapToOne` does not emit a value downstream, request another value from upstream to
+   ensure fixed-item requests (such as `take(1)`) as properly honored.
+ * Fix: Add logging to synchronous `execute` methods.
+
+
 Version 0.6.3 *(2016-04-13)*
 ----------------------------
 
