@@ -95,6 +95,13 @@ public final class BriteDatabase implements Closeable {
       end();
     }
   };
+  private final Action0 ensureNotInTransaction = new Action0() {
+    @Override public void call() {
+      if (transactions.get() != null) {
+        throw new IllegalStateException("Cannot subscribe to observable query in a transaction.");
+      }
+    }
+  };
 
   // Read and write guarded by 'databaseLock'. Lazily initialized. Use methods to access.
   private volatile SQLiteDatabase readableDatabase;
@@ -283,55 +290,22 @@ public final class BriteDatabase implements Closeable {
   }
 
   @CheckResult @NonNull
-  private QueryObservable createQuery(final Func1<Set<String>, Boolean> tableFilter,
-      final String sql, final String... args) {
+  private QueryObservable createQuery(Func1<Set<String>, Boolean> tableFilter, String sql,
+      String... args) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
           + "Use query() for a query inside a transaction.");
     }
 
-    final Query query = new Query() {
-      @Override public Cursor run() {
-        if (transactions.get() != null) {
-          throw new IllegalStateException("Cannot execute observable query in a transaction.");
-        }
-
-        long startNanos = nanoTime();
-        Cursor cursor = getReadableDatabase().rawQuery(sql, args);
-
-        if (logging) {
-          long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
-          log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter,
-              indentSql(sql), Arrays.toString(args));
-        }
-
-        return cursor;
-      }
-
-      @Override public String toString() {
-        return sql;
-      }
-    };
-
+    DatabaseQuery query = new DatabaseQuery(tableFilter, sql, args);
     final Observable<Query> queryObservable = triggers //
         .filter(tableFilter) // Only trigger on tables we care about.
-        .map(new Func1<Set<String>, Query>() {
-          @Override public Query call(Set<String> trigger) {
-            return query;
-          }
-        }) //
+        .map(query) // DatabaseQuery maps to itself to save an allocation.
         .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .startWith(query) //
         .observeOn(scheduler) //
         .onBackpressureLatest() // Guard against uncontrollable frequency of scheduler executions.
-        .doOnSubscribe(new Action0() {
-          @Override public void call() {
-            if (transactions.get() != null) {
-              throw new IllegalStateException(
-                  "Cannot subscribe to observable query in a transaction.");
-            }
-          }
-        });
+        .doOnSubscribe(ensureNotInTransaction);
     // TODO switch to .extend when non-@Experimental
     return new QueryObservable(new Observable.OnSubscribe<Query>() {
       @Override public void call(Subscriber<? super Query> subscriber) {
@@ -643,6 +617,43 @@ public final class BriteDatabase implements Closeable {
     @Override public String toString() {
       String name = String.format("%08x", System.identityHashCode(this));
       return parent == null ? name : name + " [" + parent.toString() + ']';
+    }
+  }
+
+  final class DatabaseQuery extends Query implements Func1<Set<String>, Query> {
+    private final Func1<Set<String>, Boolean> tableFilter;
+    private final String sql;
+    private final String[] args;
+
+    DatabaseQuery(Func1<Set<String>, Boolean> tableFilter, String sql, String... args) {
+      this.tableFilter = tableFilter;
+      this.sql = sql;
+      this.args = args;
+    }
+
+    @Override public Cursor run() {
+      if (transactions.get() != null) {
+        throw new IllegalStateException("Cannot execute observable query in a transaction.");
+      }
+
+      long startNanos = nanoTime();
+      Cursor cursor = getReadableDatabase().rawQuery(sql, args);
+
+      if (logging) {
+        long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
+        log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter,
+            indentSql(sql), Arrays.toString(args));
+      }
+
+      return cursor;
+    }
+
+    @Override public String toString() {
+      return sql;
+    }
+
+    @Override public Query call(Set<String> ignored) {
+      return this;
     }
   }
 }
