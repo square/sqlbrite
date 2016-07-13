@@ -41,7 +41,7 @@ public final class QueryTest {
 
   @Before public void setUp() {
     SqlBrite sqlBrite = SqlBrite.create();
-    TestDb helper = new TestDb(InstrumentationRegistry.getContext());
+    TestDb helper = new TestDb(InstrumentationRegistry.getContext(), null /* memory */);
     db = sqlBrite.wrapDatabaseHelper(helper, Schedulers.immediate());
   }
 

@@ -15,6 +15,7 @@
  */
 package com.squareup.sqlbrite;
 
+import android.annotation.TargetApi;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -24,6 +25,7 @@ import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.io.Closeable;
 import java.lang.annotation.Retention;
@@ -45,6 +47,7 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ROLLBACK;
+import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -208,6 +211,55 @@ public final class BriteDatabase implements Closeable {
     transactions.set(transaction);
     if (logging) log("TXN BEGIN %s", transaction);
     getWriteableDatabase().beginTransactionWithListener(transaction);
+
+    return this.transaction;
+  }
+
+  /**
+   * Begins a transaction in IMMEDIATE mode for this thread.
+   * <p>
+   * Transactions may nest. If the transaction is not in progress, then a database connection is
+   * obtained and a new transaction is started. Otherwise, a nested transaction is started.
+   * <p>
+   * Each call to {@code newNonExclusiveTransaction} must be matched exactly by a call to
+   * {@link Transaction#end()}. To mark a transaction as successful, call
+   * {@link Transaction#markSuccessful()} before calling {@link Transaction#end()}. If the
+   * transaction is not successful, or if any of its nested transactions were not successful, then
+   * the entire transaction will be rolled back when the outermost transaction is ended.
+   * <p>
+   * Transactions queue up all query notifications until they have been applied.
+   * <p>
+   * Here is the standard idiom for transactions:
+   *
+   * <pre>{@code
+   * try (Transaction transaction = db.newNonExclusiveTransaction()) {
+   *   ...
+   *   transaction.markSuccessful();
+   * }
+   * }</pre>
+   *
+   * Manually call {@link Transaction#end()} when try-with-resources is not available:
+   * <pre>{@code
+   * Transaction transaction = db.newNonExclusiveTransaction();
+   * try {
+   *   ...
+   *   transaction.markSuccessful();
+   * } finally {
+   *   transaction.end();
+   * }
+   * }</pre>
+   *
+   *
+   * @see SQLiteDatabase#beginTransactionNonExclusive()
+   */
+  @TargetApi(HONEYCOMB)
+  @RequiresApi(HONEYCOMB)
+  @CheckResult @NonNull
+  public Transaction newNonExclusiveTransaction() {
+    SqliteTransaction transaction = new SqliteTransaction(transactions.get());
+    transactions.set(transaction);
+    if (logging) log("TXN BEGIN %s", transaction);
+    getWriteableDatabase().beginTransactionWithListenerNonExclusive(transaction);
 
     return this.transaction;
   }
