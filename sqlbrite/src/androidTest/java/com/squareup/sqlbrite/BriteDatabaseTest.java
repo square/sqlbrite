@@ -55,6 +55,7 @@ import static com.squareup.sqlbrite.TestDb.TABLE_MANAGER;
 import static com.squareup.sqlbrite.TestDb.employee;
 import static com.squareup.sqlbrite.TestDb.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
@@ -748,6 +749,40 @@ public final class BriteDatabaseTest {
       transaction.end();
     }
     o.assertNoMoreEvents();
+  }
+
+  @Test public void nonExclusiveTransactionWorks() throws InterruptedException {
+    final CountDownLatch transactionStarted = new CountDownLatch(1);
+    final CountDownLatch transactionProceed = new CountDownLatch(1);
+    final CountDownLatch transactionCompleted = new CountDownLatch(1);
+
+    new Thread() {
+      @Override public void run() {
+        Transaction transaction = db.newNonExclusiveTransaction();
+        transactionStarted.countDown();
+        try {
+          db.insert(TABLE_EMPLOYEE, employee("hans", "Hans Hanson"));
+          transactionProceed.await(10, SECONDS);
+        } catch (InterruptedException e) {
+          throw new RuntimeException("Exception in transaction thread", e);
+        }
+        transaction.markSuccessful();
+        transaction.close();
+        transactionCompleted.countDown();
+      }
+    }.start();
+
+    assertThat(transactionStarted.await(10, SECONDS)).isTrue();
+
+    //Simple query
+    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+            .lift(Query.mapToOne(Employee.MAPPER))
+            .toBlocking()
+            .first();
+    assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
+
+    transactionProceed.countDown();
+    assertThat(transactionCompleted.await(10, SECONDS)).isTrue();
   }
 
   @Test public void backpressureSupportedWhenConsumerSlow() {
