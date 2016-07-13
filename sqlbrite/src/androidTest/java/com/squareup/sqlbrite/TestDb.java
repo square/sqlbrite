@@ -105,8 +105,8 @@ final class TestDb extends SQLiteOpenHelper {
   long bobId;
   long eveId;
 
-  TestDb(Context context) {
-    super(context, null /* memory */, null /* cursor factory */, 1 /* version */);
+  TestDb(Context context, String path) {
+    super(context, path, null /* cursor factory */, 1 /* version */);
   }
 
   @Override public void onCreate(@NonNull SQLiteDatabase db) {

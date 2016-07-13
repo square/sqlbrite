@@ -32,7 +32,9 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import rx.Observable;
 import rx.Subscription;
@@ -65,8 +67,11 @@ public final class BriteDatabaseTest {
   private SQLiteDatabase real;
   private BriteDatabase db;
 
-  @Before public void setUp() {
-    helper = new TestDb(InstrumentationRegistry.getContext());
+  @Rule
+  public TemporaryFolder dbFolder = new TemporaryFolder();
+
+  @Before public void setUp() throws IOException {
+    helper = new TestDb(InstrumentationRegistry.getContext(), dbFolder.newFile().getPath());
     real = helper.getWritableDatabase();
 
     SqlBrite.Logger logger = new SqlBrite.Logger() {
