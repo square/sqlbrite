@@ -619,7 +619,7 @@ public final class BriteDatabase implements Closeable {
   public @interface ConflictAlgorithm {
   }
 
-  private static String indentSql(String sql) {
+  static String indentSql(String sql) {
     return sql.replace("\n", "\n       ");
   }
 
