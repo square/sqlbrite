@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import rx.Observable;
+import rx.Observable.Transformer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -61,6 +62,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 public final class BriteDatabase implements Closeable {
   private final SQLiteOpenHelper helper;
   private final SqlBrite.Logger logger;
+  private final Transformer<Query, Query> queryTransformer;
 
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   final ThreadLocal<SqliteTransaction> transactions = new ThreadLocal<>();
@@ -118,10 +120,12 @@ public final class BriteDatabase implements Closeable {
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger, Scheduler scheduler) {
+  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger, Scheduler scheduler,
+      Transformer<Query, Query> queryTransformer) {
     this.helper = helper;
     this.logger = logger;
     this.scheduler = scheduler;
+    this.queryTransformer = queryTransformer;
   }
 
   /**
@@ -358,6 +362,7 @@ public final class BriteDatabase implements Closeable {
         .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .startWith(query) //
         .observeOn(scheduler) //
+        .compose(queryTransformer) // Apply the user's query transformer.
         .onBackpressureLatest() // Guard against uncontrollable frequency of scheduler executions.
         .doOnSubscribe(ensureNotInTransaction);
     // TODO switch to .extend when non-@Experimental

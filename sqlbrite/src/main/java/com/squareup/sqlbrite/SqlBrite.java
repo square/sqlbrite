@@ -25,6 +25,7 @@ import android.util.Log;
 import java.util.List;
 import rx.Observable;
 import rx.Observable.Operator;
+import rx.Observable.Transformer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Func1;
@@ -34,24 +35,58 @@ import rx.functions.Func1;
  * the result of a query.
  */
 public final class SqlBrite {
+  static final Logger DEFAULT_LOGGER = new Logger() {
+    @Override public void log(String message) {
+      Log.d("SqlBrite", message);
+    }
+  };
+  static final Transformer<Query, Query> DEFAULT_TRANSFORMER = new Transformer<Query, Query>() {
+    @Override public Observable<Query> call(Observable<Query> queryObservable) {
+      return queryObservable;
+    }
+  };
+
+  public final class Builder {
+    private Logger logger = DEFAULT_LOGGER;
+    private Transformer<Query, Query> queryTransformer = DEFAULT_TRANSFORMER;
+
+    @CheckResult
+    public Builder logger(@NonNull Logger logger) {
+      if (logger == null) throw new NullPointerException("logger == null");
+      this.logger = logger;
+      return this;
+    }
+
+    @CheckResult
+    public Builder queryTransformer(@NonNull Transformer<Query, Query> queryTransformer) {
+      if (queryTransformer == null) throw new NullPointerException("queryTransformer == null");
+      this.queryTransformer = queryTransformer;
+      return this;
+    }
+
+    @CheckResult
+    public SqlBrite build() {
+      return new SqlBrite(logger, queryTransformer);
+    }
+  }
   @CheckResult @NonNull
   public static SqlBrite create() {
-    return create(new Logger() {
-      @Override public void log(String message) {
-        Log.d("SqlBrite", message);
-      }
-    });
+    return new SqlBrite(DEFAULT_LOGGER, DEFAULT_TRANSFORMER);
   }
 
   @CheckResult @NonNull
   public static SqlBrite create(@NonNull Logger logger) {
-    return new SqlBrite(logger);
+    if (logger == null) throw new NullPointerException("logger == null");
+    return new SqlBrite(logger, DEFAULT_TRANSFORMER);
   }
 
   private final Logger logger;
+  private final Transformer<Query, Query> queryTransformer;
 
-  private SqlBrite(@NonNull Logger logger) {
+  private SqlBrite(@NonNull Logger logger,
+      @NonNull Transformer<Query, Query> queryTransformer) {
     this.logger = logger;
+    this.queryTransformer = queryTransformer;
   }
 
   /**
@@ -67,7 +102,7 @@ public final class SqlBrite {
    */
   @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper,
       @NonNull Scheduler scheduler) {
-    return new BriteDatabase(helper, logger, scheduler);
+    return new BriteDatabase(helper, logger, scheduler, queryTransformer);
   }
 
   /**
@@ -78,7 +113,7 @@ public final class SqlBrite {
    */
   @CheckResult @NonNull public BriteContentResolver wrapContentProvider(
       @NonNull ContentResolver contentResolver, @NonNull Scheduler scheduler) {
-    return new BriteContentResolver(contentResolver, logger, scheduler);
+    return new BriteContentResolver(contentResolver, logger, scheduler, queryTransformer);
   }
 
   /** An executable query. */

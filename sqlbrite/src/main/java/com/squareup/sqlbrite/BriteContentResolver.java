@@ -27,6 +27,7 @@ import android.support.annotation.Nullable;
 import java.util.Arrays;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
+import rx.Observable.Transformer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -47,13 +48,16 @@ public final class BriteContentResolver {
   final ContentResolver contentResolver;
   private final Logger logger;
   private final Scheduler scheduler;
+  private final Transformer<Query, Query> queryTransformer;
 
   volatile boolean logging;
 
-  BriteContentResolver(ContentResolver contentResolver, Logger logger, Scheduler scheduler) {
+  BriteContentResolver(ContentResolver contentResolver, Logger logger, Scheduler scheduler,
+      Transformer<Query, Query> queryTransformer) {
     this.contentResolver = contentResolver;
     this.logger = logger;
     this.scheduler = scheduler;
+    this.queryTransformer = queryTransformer;
   }
 
   /** Control whether debug logging is enabled. */
@@ -124,6 +128,7 @@ public final class BriteContentResolver {
     final Observable<Query> queryObservable = Observable.create(subscribe) //
         .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .observeOn(scheduler) //
+        .compose(queryTransformer) // Apply the user's query transformer.
         .onBackpressureLatest(); // Guard against uncontrollable frequency of scheduler executions.
     // TODO switch to .extend when non-@Experimental
     return new QueryObservable(new OnSubscribe<Query>() {
