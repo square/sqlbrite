@@ -2,6 +2,7 @@ allprojects {
   buildscript {
     repositories {
       mavenCentral()
+      jcenter()
     }
   }
 
@@ -11,7 +12,7 @@ allprojects {
 }
 
 ext {
-  androidPlugin = 'com.android.tools.build:gradle:2.1.0'
+  androidPlugin = 'com.android.tools.build:gradle:2.2.1'
   compileSdkVersion = 24
   buildToolsVersion = '24.0.0'
 
