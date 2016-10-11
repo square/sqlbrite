@@ -20,7 +20,9 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteTransactionListener;
+import android.os.Build;
 import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
@@ -545,6 +547,42 @@ public final class BriteDatabase implements Closeable {
     execute(sql, args);
 
     sendTableTrigger(Collections.singleton(table));
+  }
+
+  /**
+   * Execute {@code statement}, if the the number of rows affected by execution of this SQL
+   * statement is of any importance to the caller - for example, UPDATE / DELETE SQL statements.
+   *
+   * @return the number of rows affected by this SQL statement execution.
+   * @throws android.database.SQLException If the SQL string is invalid
+   *
+   * @see SQLiteStatement#executeUpdateDelete()
+   */
+  @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
+  public int executeUpdateDelete(String table, SQLiteStatement statement) {
+    if (logging) log("EXECUTE\n %s", statement);
+
+    int result = statement.executeUpdateDelete();
+    sendTableTrigger(Collections.singleton(table));
+    return result;
+  }
+
+  /**
+   * Execute {@code statement} and return the ID of the row inserted due to this call.
+   * The SQL statement should be an INSERT for this to be a useful call.
+   *
+   * @return the row ID of the last row inserted, if this insert is successful. -1 otherwise.
+   *
+   * @throws android.database.SQLException If the SQL string is invalid
+   *
+   * @see SQLiteStatement#executeInsert()
+   */
+  public long executeInsert(String table, SQLiteStatement statement) {
+    if (logging) log("EXECUTE\n %s", statement);
+
+    long result = statement.executeInsert();
+    sendTableTrigger(Collections.singleton(table));
+    return result;
   }
 
   /** An in-progress database transaction. */

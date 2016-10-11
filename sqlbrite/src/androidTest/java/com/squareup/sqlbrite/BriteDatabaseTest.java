@@ -15,12 +15,16 @@
  */
 package com.squareup.sqlbrite;
 
+import android.annotation.TargetApi;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
+import android.database.sqlite.SQLiteStatement;
+import android.os.Build;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.SdkSuppress;
 import android.support.test.runner.AndroidJUnit4;
 import com.squareup.sqlbrite.BriteDatabase.Transaction;
 import com.squareup.sqlbrite.TestDb.Employee;
@@ -416,6 +420,164 @@ public final class BriteDatabaseTest {
     o.assertNoMoreEvents();
   }
 
+  @Test public void executeInsertAndTrigger() {
+    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
+        + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") "
+        + "VALUES ('Chad Chadson', 'chad')");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeInsert(TABLE_EMPLOYEE, statement);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("chad", "Chad Chadson")
+        .isExhausted();
+  }
+
+  @Test public void executeInsertThrowsAndDoesNotTrigger() {
+    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
+        + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") "
+        + "VALUES ('Alice Allison', 'alice')");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeInsert(TABLE_EMPLOYEE, statement);
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
+  }
+
+  @Test public void executeInsertWithArgsAndTrigger() {
+    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
+        + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") VALUES (?, ?)");
+    statement.bindString(1, "Chad Chadson");
+    statement.bindString(2, "chad");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeInsert(TABLE_EMPLOYEE, statement);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .hasRow("chad", "Chad Chadson")
+        .isExhausted();
+  }
+
+  @Test public void executeInsertWithArgsThrowsAndDoesNotTrigger() {
+    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
+        + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") VALUES (?, ?)");
+    statement.bindString(1, "Alice Aliison");
+    statement.bindString(2, "alice");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeInsert(TABLE_EMPLOYEE, statement);
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
+  }
+
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
+  @Test public void executeUpdateDeleteAndTrigger() {
+    SQLiteStatement statement = real.compileStatement(
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = 'Zach'");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeUpdateDelete(TABLE_EMPLOYEE, statement);
+    o.assertCursor()
+        .hasRow("alice", "Zach")
+        .hasRow("bob", "Zach")
+        .hasRow("eve", "Zach")
+        .isExhausted();
+  }
+
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
+  @Test public void executeUpdateDeleteThrowsAndDoesNotTrigger() {
+    SQLiteStatement statement = real.compileStatement(
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.USERNAME + " = 'alice'");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeUpdateDelete(TABLE_EMPLOYEE, statement);
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
+  }
+
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
+  @Test public void executeUpdateDeleteWithArgsAndTrigger() {
+    SQLiteStatement statement = real.compileStatement(
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.NAME + " = ?");
+    statement.bindString(1, "Zach");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeUpdateDelete(TABLE_EMPLOYEE, statement);
+    o.assertCursor()
+        .hasRow("alice", "Zach")
+        .hasRow("bob", "Zach")
+        .hasRow("eve", "Zach")
+        .isExhausted();
+  }
+
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
+  @Test public void executeUpdateDeleteWithArgsThrowsAndDoesNotTrigger() {
+    SQLiteStatement statement = real.compileStatement(
+        "UPDATE " + TABLE_EMPLOYEE + " SET " + TestDb.EmployeeTable.USERNAME + " = ?");
+    statement.bindString(1, "alice");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .skip(1) // Skip initial
+        .subscribe(o);
+
+    try {
+      db.executeUpdateDelete(TABLE_EMPLOYEE, statement);
+      fail();
+    } catch (SQLException ignored) {
+    }
+    o.assertNoMoreEvents();
+  }
+
   @Test public void transactionOnlyNotifiesOnce() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
     o.assertCursor()
@@ -751,6 +913,8 @@ public final class BriteDatabaseTest {
     o.assertNoMoreEvents();
   }
 
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void nonExclusiveTransactionWorks() throws InterruptedException {
     final CountDownLatch transactionStarted = new CountDownLatch(1);
     final CountDownLatch transactionProceed = new CountDownLatch(1);
