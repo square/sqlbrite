@@ -529,9 +529,18 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String)
    */
   public void executeAndTrigger(String table, String sql) {
+    executeAndTrigger(Collections.singleton(table), sql);
+  }
+
+  /**
+   * See {@link #executeAndTrigger(String, String)} for usage. This overload allows for triggering multiple tables.
+   *
+   * @see BriteDatabase#executeAndTrigger(String, String)
+   */
+  public void executeAndTrigger(Set<String> tables, String sql) {
     execute(sql);
 
-    sendTableTrigger(Collections.singleton(table));
+    sendTableTrigger(tables);
   }
 
   /**
@@ -544,9 +553,18 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
   public void executeAndTrigger(String table, String sql, Object... args) {
+    executeAndTrigger(Collections.singleton(table), sql, args);
+  }
+
+  /**
+   * See {@link #executeAndTrigger(String, String, Object...)} for usage. This overload allows for triggering multiple tables.
+   *
+   * @see BriteDatabase#executeAndTrigger(String, String, Object...)
+   */
+  public void executeAndTrigger(Set<String> tables, String sql, Object... args) {
     execute(sql, args);
 
-    sendTableTrigger(Collections.singleton(table));
+    sendTableTrigger(tables);
   }
 
   /**
@@ -560,12 +578,22 @@ public final class BriteDatabase implements Closeable {
    */
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(String table, SQLiteStatement statement) {
+    return executeUpdateDelete(Collections.singleton(table), statement);
+  }
+
+  /**
+   * See {@link #executeUpdateDelete(String, SQLiteStatement)} for usage. This overload allows for triggering multiple tables.
+   *
+   * @see BriteDatabase#executeUpdateDelete(String, SQLiteStatement)
+   */
+  @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
+  public int executeUpdateDelete(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
     int rows = statement.executeUpdateDelete();
     if (rows > 0) {
       // Only send a table trigger if rows were affected.
-      sendTableTrigger(Collections.singleton(table));
+      sendTableTrigger(tables);
     }
     return rows;
   }
@@ -581,12 +609,21 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteStatement#executeInsert()
    */
   public long executeInsert(String table, SQLiteStatement statement) {
+    return executeInsert(Collections.singleton(table), statement);
+  }
+
+  /**
+   * See {@link #executeInsert(String, SQLiteStatement)} for usage. This overload allows for triggering multiple tables.
+   *
+   * @see BriteDatabase#executeInsert(String, SQLiteStatement)
+   */
+  public long executeInsert(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
     long rowId = statement.executeInsert();
     if (rowId != -1) {
       // Only send a table trigger if the insert was successful.
-      sendTableTrigger(Collections.singleton(table));
+      sendTableTrigger(tables);
     }
     return rowId;
   }
