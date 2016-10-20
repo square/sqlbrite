@@ -441,6 +441,22 @@ public final class BriteDatabaseTest {
         .isExhausted();
   }
 
+  @Test public void executeInsertAndDontTrigger() {
+    SQLiteStatement statement = real.compileStatement("INSERT OR IGNORE INTO " + TABLE_EMPLOYEE + " ("
+        + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") "
+        + "VALUES ('Alice Allison', 'alice')");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeInsert(TABLE_EMPLOYEE, statement);
+    o.assertNoMoreEvents();
+  }
+
   @Test public void executeInsertThrowsAndDoesNotTrigger() {
     SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
         + TestDb.EmployeeTable.NAME + ", " + TestDb.EmployeeTable.USERNAME + ") "
@@ -517,6 +533,25 @@ public final class BriteDatabaseTest {
         .hasRow("bob", "Zach")
         .hasRow("eve", "Zach")
         .isExhausted();
+  }
+
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
+  @Test public void executeUpdateDeleteAndDontTrigger() {
+    SQLiteStatement statement = real.compileStatement(""
+        + "UPDATE " + TABLE_EMPLOYEE
+        + " SET " + TestDb.EmployeeTable.NAME + " = 'Zach'"
+        + " WHERE " + TestDb.EmployeeTable.NAME + " = 'Rob'");
+
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    db.executeUpdateDelete(TABLE_EMPLOYEE, statement);
+    o.assertNoMoreEvents();
   }
 
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)

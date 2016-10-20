@@ -562,9 +562,12 @@ public final class BriteDatabase implements Closeable {
   public int executeUpdateDelete(String table, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
-    int result = statement.executeUpdateDelete();
-    sendTableTrigger(Collections.singleton(table));
-    return result;
+    int rows = statement.executeUpdateDelete();
+    if (rows > 0) {
+      // Only send a table trigger if rows were affected.
+      sendTableTrigger(Collections.singleton(table));
+    }
+    return rows;
   }
 
   /**
@@ -580,9 +583,12 @@ public final class BriteDatabase implements Closeable {
   public long executeInsert(String table, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
-    long result = statement.executeInsert();
-    sendTableTrigger(Collections.singleton(table));
-    return result;
+    long rowId = statement.executeInsert();
+    if (rowId != -1) {
+      // Only send a table trigger if the insert was successful.
+      sendTableTrigger(Collections.singleton(table));
+    }
+    return rowId;
   }
 
   /** An in-progress database transaction. */
