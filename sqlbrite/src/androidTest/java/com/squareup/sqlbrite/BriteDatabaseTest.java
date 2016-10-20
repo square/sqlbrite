@@ -44,9 +44,11 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import rx.Observable;
+import rx.Observable.Transformer;
 import rx.Subscription;
 import rx.functions.Action1;
 import rx.internal.util.RxRingBuffer;
+import rx.subjects.PublishSubject;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static com.google.common.truth.Truth.assertThat;
@@ -70,6 +72,7 @@ public final class BriteDatabaseTest {
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
   private final TestScheduler scheduler = new TestScheduler();
+  private final PublishSubject<Void> killSwitch = PublishSubject.create();
 
   private TestDb helper;
   private SQLiteDatabase real;
@@ -87,7 +90,12 @@ public final class BriteDatabaseTest {
         logs.add(message);
       }
     };
-    db = new BriteDatabase(helper, logger, scheduler);
+    Transformer<Query, Query> queryTransformer = new Transformer<Query, Query>() {
+      @Override public Observable<Query> call(Observable<Query> queryObservable) {
+        return queryObservable.takeUntil(killSwitch);
+      }
+    };
+    db = new BriteDatabase(helper, logger, scheduler, queryTransformer);
   }
 
   @After public void tearDown() {
@@ -209,6 +217,21 @@ public final class BriteDatabaseTest {
         .isExhausted();
 
     db.insert(TABLE_EMPLOYEE, employee("bob", "Bob Bobberson"), CONFLICT_IGNORE);
+    o.assertNoMoreEvents();
+  }
+
+  @Test public void queryNotNotifiedWhenQueryTransformerUnsubscribes() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+
+    killSwitch.onNext(null);
+    o.assertIsCompleted();
+
+    db.insert(TABLE_EMPLOYEE, employee("john", "John Johnson"));
     o.assertNoMoreEvents();
   }
 

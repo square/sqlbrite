@@ -69,6 +69,11 @@ class RecordingObserver extends Subscriber<Query> {
     assertThat(((Throwable) event).getMessage()).contains(expected);
   }
 
+  public final void assertIsCompleted() {
+    Object event = takeEvent();
+    assertThat(event).isEqualTo(COMPLETED);
+  }
+
   public void assertNoMoreEvents() {
     assertThat(events).isEmpty();
   }
