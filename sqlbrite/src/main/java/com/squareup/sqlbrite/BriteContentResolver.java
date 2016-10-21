@@ -130,7 +130,7 @@ public final class BriteContentResolver {
         .observeOn(scheduler) //
         .compose(queryTransformer) // Apply the user's query transformer.
         .onBackpressureLatest(); // Guard against uncontrollable frequency of scheduler executions.
-    // TODO switch to .extend when non-@Experimental
+    // TODO switch to .to() when non-@Experimental
     return new QueryObservable(new OnSubscribe<Query>() {
       @Override public void call(Subscriber<? super Query> subscriber) {
         queryObservable.unsafeSubscribe(subscriber);
