@@ -499,6 +499,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String)
    */
+  // TODO @WorkerThread
   public void execute(String sql) {
     if (logging) log("EXECUTE\n  sql: %s", sql);
 
@@ -515,6 +516,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
+  // TODO @WorkerThread
   public void execute(String sql, Object... args) {
     if (logging) log("EXECUTE\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
 
@@ -531,6 +533,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String)
    */
+  // TODO @WorkerThread
   public void executeAndTrigger(String table, String sql) {
     executeAndTrigger(Collections.singleton(table), sql);
   }
@@ -540,6 +543,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeAndTrigger(String, String)
    */
+  // TODO @WorkerThread
   public void executeAndTrigger(Set<String> tables, String sql) {
     execute(sql);
 
@@ -555,6 +559,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
+  // TODO @WorkerThread
   public void executeAndTrigger(String table, String sql, Object... args) {
     executeAndTrigger(Collections.singleton(table), sql, args);
   }
@@ -564,6 +569,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeAndTrigger(String, String, Object...)
    */
+  // TODO @WorkerThread
   public void executeAndTrigger(Set<String> tables, String sql, Object... args) {
     execute(sql, args);
 
@@ -579,6 +585,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteStatement#executeUpdateDelete()
    */
+  // TODO @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(String table, SQLiteStatement statement) {
     return executeUpdateDelete(Collections.singleton(table), statement);
@@ -589,6 +596,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeUpdateDelete(String, SQLiteStatement)
    */
+  // TODO @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
@@ -611,6 +619,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteStatement#executeInsert()
    */
+  // TODO @WorkerThread
   public long executeInsert(String table, SQLiteStatement statement) {
     return executeInsert(Collections.singleton(table), statement);
   }
@@ -620,6 +629,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeInsert(String, SQLiteStatement)
    */
+  // TODO @WorkerThread
   public long executeInsert(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
