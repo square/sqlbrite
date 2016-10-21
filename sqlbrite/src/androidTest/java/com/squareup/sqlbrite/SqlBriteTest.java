@@ -13,12 +13,39 @@ import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class)
+@SuppressWarnings("CheckResult")
 public final class SqlBriteTest {
   private static final String FIRST_NAME = "first_name";
   private static final String LAST_NAME = "last_name";
   private static final String[] COLUMN_NAMES = { FIRST_NAME, LAST_NAME };
+
+  @Test public void builderDisallowsNull() {
+    SqlBrite.Builder builder = new SqlBrite.Builder();
+    try {
+      builder.logger(null);
+      fail();
+    } catch (NullPointerException e) {
+      assertThat(e).hasMessage("logger == null");
+    }
+    try {
+      builder.queryTransformer(null);
+      fail();
+    } catch (NullPointerException e) {
+      assertThat(e).hasMessage("queryTransformer == null");
+    }
+  }
+
+  @Test public void createDisallowsNull() {
+    try {
+      SqlBrite.create(null);
+      fail();
+    } catch (NullPointerException e) {
+      assertThat(e).hasMessage("logger == null");
+    }
+  }
 
   @Test public void asRowsEmpty() {
     MatrixCursor cursor = new MatrixCursor(COLUMN_NAMES);
