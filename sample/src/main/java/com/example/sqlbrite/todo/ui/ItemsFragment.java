@@ -28,8 +28,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.InjectView;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.Db;
@@ -87,8 +87,8 @@ public final class ItemsFragment extends Fragment {
 
   @Inject BriteDatabase db;
 
-  @InjectView(android.R.id.list) ListView listView;
-  @InjectView(android.R.id.empty) View emptyView;
+  @BindView(android.R.id.list) ListView listView;
+  @BindView(android.R.id.empty) View emptyView;
 
   private Listener listener;
   private ItemsAdapter adapter;
@@ -132,7 +132,7 @@ public final class ItemsFragment extends Fragment {
   @Override
   public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
-    ButterKnife.inject(this, view);
+    ButterKnife.bind(this, view);
     listView.setEmptyView(emptyView);
     listView.setAdapter(adapter);
 

@@ -19,7 +19,8 @@ dependencies {
   apt rootProject.ext.daggerCompiler
 
   // Third-party dependencies.
-  compile rootProject.ext.butterKnife
+  compile rootProject.ext.butterKnifeRuntime
+  annotationProcessor rootProject.ext.butterKnifeCompiler
   compile rootProject.ext.timber
   compile rootProject.ext.rxJava
   compile rootProject.ext.rxAndroid

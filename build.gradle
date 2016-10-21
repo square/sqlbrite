@@ -22,18 +22,19 @@ ext {
   supportTestRunner = 'com.android.support.test:runner:0.5'
 
   // Dagger dependencies.
-  dagger = 'com.google.dagger:dagger:2.4'
-  daggerCompiler = 'com.google.dagger:dagger-compiler:2.4'
+  dagger = 'com.google.dagger:dagger:2.7'
+  daggerCompiler = 'com.google.dagger:dagger-compiler:2.7'
 
   // Third-party dependencies.
-  butterKnife = 'com.jakewharton:butterknife:6.1.0'
-  timber = 'com.jakewharton.timber:timber:2.7.1'
-  autoValue = 'com.google.auto.value:auto-value:1.2-rc1'
-  autoValueParcel = 'com.ryanharter.auto.value:auto-value-parcel:0.2.0'
-  rxJava = 'io.reactivex:rxjava:1.1.0'
-  rxAndroid = 'io.reactivex:rxandroid:1.0.1'
-  rxBinding = 'com.jakewharton.rxbinding:rxbinding:0.2.0'
-  truth = 'com.google.truth:truth:0.27'
+  butterKnifeRuntime = 'com.jakewharton:butterknife:8.4.0'
+  butterKnifeCompiler = 'com.jakewharton:butterknife-compiler:8.4.0'
+  timber = 'com.jakewharton.timber:timber:4.3.1'
+  autoValue = 'com.google.auto.value:auto-value:1.3'
+  autoValueParcel = 'com.ryanharter.auto.value:auto-value-parcel:0.2.5'
+  rxJava = 'io.reactivex:rxjava:1.2.1'
+  rxAndroid = 'io.reactivex:rxandroid:1.2.1'
+  rxBinding = 'com.jakewharton.rxbinding:rxbinding:0.4.0'
+  truth = 'com.google.truth:truth:0.30'
   findbugsJsr305 = 'com.google.code.findbugs:jsr305:3.0.0'
   findbugsAnnotations = 'com.google.code.findbugs:annotations:3.0.0'
 }
