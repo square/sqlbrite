@@ -15,7 +15,6 @@
  */
 package com.squareup.sqlbrite;
 
-import android.annotation.TargetApi;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -258,7 +257,6 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#beginTransactionNonExclusive()
    */
-  @TargetApi(HONEYCOMB)
   @RequiresApi(HONEYCOMB)
   @CheckResult @NonNull
   public Transaction newNonExclusiveTransaction() {
