@@ -365,7 +365,7 @@ public final class BriteDatabase implements Closeable {
         .compose(queryTransformer) // Apply the user's query transformer.
         .onBackpressureLatest() // Guard against uncontrollable frequency of scheduler executions.
         .doOnSubscribe(ensureNotInTransaction);
-    // TODO switch to .extend when non-@Experimental
+    // TODO switch to .to() when non-@Experimental
     return new QueryObservable(new Observable.OnSubscribe<Query>() {
       @Override public void call(Subscriber<? super Query> subscriber) {
         queryObservable.unsafeSubscribe(subscriber);
