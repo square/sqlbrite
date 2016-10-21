@@ -1,6 +1,15 @@
 Change Log
 =========
 
+Version 0.8.0 *(2016-10-21)*
+----------------------------
+
+ * New: A `Transformer<Query, Query>` can be supplied which is applied to each returned observable.
+ * New: `newNonExclusiveTransaction()` starts transactions in `IMMEDIATE` mode. See the platform
+   or SQLite documentation for more information.
+ * New: APIs for insert/update/delete which allow providing a compiled `SQLiteStatement`.
+
+
 Version 0.7.0 *(2016-07-06)*
 ----------------------------
 
