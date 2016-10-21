@@ -46,7 +46,7 @@ public final class SqlBrite {
     }
   };
 
-  public final class Builder {
+  public static final class Builder {
     private Logger logger = DEFAULT_LOGGER;
     private Transformer<Query, Query> queryTransformer = DEFAULT_TRANSFORMER;
 
@@ -69,12 +69,15 @@ public final class SqlBrite {
       return new SqlBrite(logger, queryTransformer);
     }
   }
-  @CheckResult @NonNull
+
+  /** @deprecated Use {@link Builder} to create instances. */
+  @Deprecated @CheckResult @NonNull
   public static SqlBrite create() {
     return new SqlBrite(DEFAULT_LOGGER, DEFAULT_TRANSFORMER);
   }
 
-  @CheckResult @NonNull
+  /** @deprecated Use {@link Builder} to create instances. */
+  @Deprecated @CheckResult @NonNull
   public static SqlBrite create(@NonNull Logger logger) {
     if (logger == null) throw new NullPointerException("logger == null");
     return new SqlBrite(logger, DEFAULT_TRANSFORMER);
@@ -83,8 +86,7 @@ public final class SqlBrite {
   private final Logger logger;
   private final Transformer<Query, Query> queryTransformer;
 
-  private SqlBrite(@NonNull Logger logger,
-      @NonNull Transformer<Query, Query> queryTransformer) {
+  private SqlBrite(@NonNull Logger logger, @NonNull Transformer<Query, Query> queryTransformer) {
     this.logger = logger;
     this.queryTransformer = queryTransformer;
   }
