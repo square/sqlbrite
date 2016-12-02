@@ -27,6 +27,7 @@ import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
+import android.support.annotation.WorkerThread;
 import com.squareup.sqlbrite.SqlBrite.Query;
 import java.io.Closeable;
 import java.lang.annotation.Retention;
@@ -376,7 +377,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
-  @CheckResult // TODO @WorkerThread
+  @CheckResult @WorkerThread
   public Cursor query(@NonNull String sql, @NonNull String... args) {
     long startNanos = nanoTime();
     Cursor cursor = getReadableDatabase().rawQuery(sql, args);
@@ -394,7 +395,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insert(String, String, ContentValues)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values) {
     return insert(table, values, CONFLICT_NONE);
   }
@@ -404,7 +405,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#insertWithOnConflict(String, String, ContentValues, int)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -430,7 +431,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#delete(String, String, String[])
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public int delete(@NonNull String table, @Nullable String whereClause,
       @Nullable String... whereArgs) {
     SQLiteDatabase db = getWriteableDatabase();
@@ -456,7 +457,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#update(String, ContentValues, String, String[])
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @Nullable String whereClause, @Nullable String... whereArgs) {
     return update(table, values, CONFLICT_NONE, whereClause, whereArgs);
@@ -468,7 +469,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#updateWithOnConflict(String, ContentValues, String, String[], int)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
       @Nullable String... whereArgs) {
@@ -499,7 +500,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void execute(String sql) {
     if (logging) log("EXECUTE\n  sql: %s", sql);
 
@@ -516,7 +517,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void execute(String sql, Object... args) {
     if (logging) log("EXECUTE\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
 
@@ -533,7 +534,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void executeAndTrigger(String table, String sql) {
     executeAndTrigger(Collections.singleton(table), sql);
   }
@@ -543,7 +544,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeAndTrigger(String, String)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void executeAndTrigger(Set<String> tables, String sql) {
     execute(sql);
 
@@ -559,7 +560,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteDatabase#execSQL(String, Object[])
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void executeAndTrigger(String table, String sql, Object... args) {
     executeAndTrigger(Collections.singleton(table), sql, args);
   }
@@ -569,7 +570,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeAndTrigger(String, String, Object...)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public void executeAndTrigger(Set<String> tables, String sql, Object... args) {
     execute(sql, args);
 
@@ -585,7 +586,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteStatement#executeUpdateDelete()
    */
-  // TODO @WorkerThread
+  @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(String table, SQLiteStatement statement) {
     return executeUpdateDelete(Collections.singleton(table), statement);
@@ -596,7 +597,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeUpdateDelete(String, SQLiteStatement)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
@@ -619,7 +620,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see SQLiteStatement#executeInsert()
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public long executeInsert(String table, SQLiteStatement statement) {
     return executeInsert(Collections.singleton(table), statement);
   }
@@ -629,7 +630,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @see BriteDatabase#executeInsert(String, SQLiteStatement)
    */
-  // TODO @WorkerThread
+  @WorkerThread
   public long executeInsert(Set<String> tables, SQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
@@ -649,7 +650,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#endTransaction()
      */
-    // TODO @WorkerThread
+    @WorkerThread
     void end();
 
     /**
@@ -660,7 +661,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#setTransactionSuccessful()
      */
-    // TODO @WorkerThread
+    @WorkerThread
     void markSuccessful();
 
     /**
@@ -674,7 +675,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#yieldIfContendedSafely()
      */
-    // TODO @WorkerThread
+    @WorkerThread
     boolean yieldIfContendedSafely();
 
     /**
@@ -691,13 +692,13 @@ public final class BriteDatabase implements Closeable {
      *
      * @see SQLiteDatabase#yieldIfContendedSafely(long)
      */
-    // TODO @WorkerThread
+    @WorkerThread
     boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit);
 
     /**
      * Equivalent to calling {@link #end()}
      */
-    // TODO @WorkerThread
+    @WorkerThread
     @Override void close();
   }
 
