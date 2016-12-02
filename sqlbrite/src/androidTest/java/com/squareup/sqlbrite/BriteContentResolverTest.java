@@ -207,7 +207,9 @@ public final class BriteContentResolverTest
     scheduler.triggerActions();
 
     // Assert we got all the events from the queue plus the one buffered from backpressure.
-    for (int i = 0; i < RxRingBuffer.SIZE + 1; i++) {
+    // Note: Because of the rebatching request behavior of observeOn, the initial emission is
+    // counted against this amount which is why there is no +1 on SIZE.
+    for (int i = 0; i < RxRingBuffer.SIZE; i++) {
       o.assertCursor(); // Ignore contents, just assert we got notified.
     }
   }
