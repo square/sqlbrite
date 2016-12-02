@@ -1,5 +1,14 @@
 Change Log
-=========
+==========
+
+Version 1.0.0 *(2016-12-02)*
+----------------------------
+
+ * RxJava dependency updated to 1.2.3.
+ * Restore `@WorkerThread` annotations to methods which do I/O. If you're using Java 8 with
+   Retrolambda or Jack you need to use version 2.3 or newer of the Android Gradle plugin to have
+   these annotations correctly handled by lint.
+
 
 Version 0.8.0 *(2016-10-21)*
 ----------------------------
