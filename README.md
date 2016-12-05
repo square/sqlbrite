@@ -12,7 +12,7 @@ Usage
 Create a `SqlBrite` instance which is an adapter for the library functionality.
 
 ```java
-SqlBrite sqlBrite = SqlBrite.create();
+SqlBrite sqlBrite = new SqlBrite.Builder().build();
 ```
 
 Pass a `SQLiteOpenHelper` instance and a `Scheduler` to create a `BriteDatabase`.
