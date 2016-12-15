@@ -110,11 +110,6 @@ public final class BriteDatabase implements Closeable {
     }
   };
 
-  // Read and write guarded by 'databaseLock'. Lazily initialized. Use methods to access.
-  private volatile SQLiteDatabase readableDatabase;
-  private volatile SQLiteDatabase writeableDatabase;
-  private final Object databaseLock = new Object();
-
   private final Scheduler scheduler;
 
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
@@ -135,33 +130,51 @@ public final class BriteDatabase implements Closeable {
     logging = enabled;
   }
 
-  SQLiteDatabase getReadableDatabase() {
-    SQLiteDatabase db = readableDatabase;
-    if (db == null) {
-      synchronized (databaseLock) {
-        db = readableDatabase;
-        if (db == null) {
-          if (logging) log("Creating readable database");
-          db = readableDatabase = helper.getReadableDatabase();
-        }
-      }
-    }
-    return db;
+  /**
+   * Create and/or open a database.  This will be the same object returned by
+   * {@link SQLiteOpenHelper#getWritableDatabase} unless some problem, such as a full disk,
+   * requires the database to be opened read-only.  In that case, a read-only
+   * database object will be returned.  If the problem is fixed, a future call
+   * to {@link SQLiteOpenHelper#getWritableDatabase} may succeed, in which case the read-only
+   * database object will be closed and the read/write object will be returned
+   * in the future.
+   *
+   * <p class="caution">Like {@link SQLiteOpenHelper#getWritableDatabase}, this method may
+   * take a long time to return, so you should not call it from the
+   * application main thread, including from
+   * {@link android.content.ContentProvider#onCreate ContentProvider.onCreate()}.
+   *
+   * @throws android.database.sqlite.SQLiteException if the database cannot be opened
+   * @return a database object valid until {@link SQLiteOpenHelper#getWritableDatabase}
+   *     or {@link #close} is called.
+   */
+  @NonNull @CheckResult @WorkerThread
+  public SQLiteDatabase getReadableDatabase() {
+    return helper.getReadableDatabase();
   }
 
-  // Package-private to avoid synthetic accessor method for 'transaction' instance.
-  SQLiteDatabase getWriteableDatabase() {
-    SQLiteDatabase db = writeableDatabase;
-    if (db == null) {
-      synchronized (databaseLock) {
-        db = writeableDatabase;
-        if (db == null) {
-          if (logging) log("Creating writeable database");
-          db = writeableDatabase = helper.getWritableDatabase();
-        }
-      }
-    }
-    return db;
+  /**
+   * Create and/or open a database that will be used for reading and writing.
+   * The first time this is called, the database will be opened and
+   * {@link SQLiteOpenHelper#onCreate}, {@link SQLiteOpenHelper#onUpgrade}
+   * and/or {@link SQLiteOpenHelper#onOpen} will be called.
+   *
+   * <p>Once opened successfully, the database is cached, so you can
+   * call this method every time you need to write to the database.
+   * (Make sure to call {@link #close} when you no longer need the database.)
+   * Errors such as bad permissions or a full disk may cause this method
+   * to fail, but future attempts may succeed if the problem is fixed.</p>
+   *
+   * <p class="caution">Database upgrade may take a long time, you
+   * should not call this method from the application main thread, including
+   * from {@link android.content.ContentProvider#onCreate ContentProvider.onCreate()}.
+   *
+   * @throws android.database.sqlite.SQLiteException if the database cannot be opened for writing
+   * @return a read/write database object valid until {@link #close} is called
+   */
+  @NonNull @CheckResult @WorkerThread
+  public SQLiteDatabase getWriteableDatabase() {
+    return helper.getWritableDatabase();
   }
 
   void sendTableTrigger(Set<String> tables) {
@@ -275,11 +288,7 @@ public final class BriteDatabase implements Closeable {
    * well as attempting to create new ones for new subscriptions.
    */
   @Override public void close() {
-    synchronized (databaseLock) {
-      readableDatabase = null;
-      writeableDatabase = null;
-      helper.close();
-    }
+    helper.close();
   }
 
   /**
