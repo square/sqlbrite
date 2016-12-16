@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+Version 1.1.0 *(2016-12-16)*
+----------------------------
+
+ * New: Expose `getReadableDatabase()` and `getWriteableDatabase()` convenience methods.
+ * Fix: Do not cache instances of the readable and writable database internally as the framework
+   does this by default.
+
+
 Version 1.0.0 *(2016-12-02)*
 ----------------------------
 
