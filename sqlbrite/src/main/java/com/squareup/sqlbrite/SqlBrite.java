@@ -87,7 +87,7 @@ public final class SqlBrite {
   private final Logger logger;
   private final Transformer<Query, Query> queryTransformer;
 
-  private SqlBrite(@NonNull Logger logger, @NonNull Transformer<Query, Query> queryTransformer) {
+  SqlBrite(@NonNull Logger logger, @NonNull Transformer<Query, Query> queryTransformer) {
     this.logger = logger;
     this.queryTransformer = queryTransformer;
   }
