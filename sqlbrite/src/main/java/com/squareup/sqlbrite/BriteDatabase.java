@@ -72,15 +72,15 @@ public final class BriteDatabase implements Closeable {
   private final Transaction transaction = new Transaction() {
     @Override public void markSuccessful() {
       if (logging) log("TXN SUCCESS %s", transactions.get());
-      getWriteableDatabase().setTransactionSuccessful();
+      getWritableDatabase().setTransactionSuccessful();
     }
 
     @Override public boolean yieldIfContendedSafely() {
-      return getWriteableDatabase().yieldIfContendedSafely();
+      return getWritableDatabase().yieldIfContendedSafely();
     }
 
     @Override public boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit) {
-      return getWriteableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
+      return getWritableDatabase().yieldIfContendedSafely(sleepUnit.toMillis(sleepAmount));
     }
 
     @Override public void end() {
@@ -91,7 +91,7 @@ public final class BriteDatabase implements Closeable {
       SqliteTransaction newTransaction = transaction.parent;
       transactions.set(newTransaction);
       if (logging) log("TXN END %s", transaction);
-      getWriteableDatabase().endTransaction();
+      getWritableDatabase().endTransaction();
       // Send the triggers after ending the transaction in the DB.
       if (transaction.commit) {
         sendTableTrigger(transaction);
@@ -153,6 +153,14 @@ public final class BriteDatabase implements Closeable {
     return helper.getReadableDatabase();
   }
 
+
+  /** @deprecated Use {@link #getWritableDatabase()}. */
+  @Deprecated
+  @NonNull @CheckResult @WorkerThread
+  public SQLiteDatabase getWriteableDatabase() {
+    return helper.getWritableDatabase();
+  }
+
   /**
    * Create and/or open a database that will be used for reading and writing.
    * The first time this is called, the database will be opened and
@@ -173,7 +181,7 @@ public final class BriteDatabase implements Closeable {
    * @return a read/write database object valid until {@link #close} is called
    */
   @NonNull @CheckResult @WorkerThread
-  public SQLiteDatabase getWriteableDatabase() {
+  public SQLiteDatabase getWritableDatabase() {
     return helper.getWritableDatabase();
   }
 
@@ -229,7 +237,7 @@ public final class BriteDatabase implements Closeable {
     SqliteTransaction transaction = new SqliteTransaction(transactions.get());
     transactions.set(transaction);
     if (logging) log("TXN BEGIN %s", transaction);
-    getWriteableDatabase().beginTransactionWithListener(transaction);
+    getWritableDatabase().beginTransactionWithListener(transaction);
 
     return this.transaction;
   }
@@ -277,7 +285,7 @@ public final class BriteDatabase implements Closeable {
     SqliteTransaction transaction = new SqliteTransaction(transactions.get());
     transactions.set(transaction);
     if (logging) log("TXN BEGIN %s", transaction);
-    getWriteableDatabase().beginTransactionWithListenerNonExclusive(transaction);
+    getWritableDatabase().beginTransactionWithListenerNonExclusive(transaction);
 
     return this.transaction;
   }
@@ -417,7 +425,7 @@ public final class BriteDatabase implements Closeable {
   @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm) {
-    SQLiteDatabase db = getWriteableDatabase();
+    SQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("INSERT\n  table: %s\n  values: %s\n  conflictAlgorithm: %s", table, values,
@@ -443,7 +451,7 @@ public final class BriteDatabase implements Closeable {
   @WorkerThread
   public int delete(@NonNull String table, @Nullable String whereClause,
       @Nullable String... whereArgs) {
-    SQLiteDatabase db = getWriteableDatabase();
+    SQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("DELETE\n  table: %s\n  whereClause: %s\n  whereArgs: %s", table, whereClause,
@@ -482,7 +490,7 @@ public final class BriteDatabase implements Closeable {
   public int update(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
       @Nullable String... whereArgs) {
-    SQLiteDatabase db = getWriteableDatabase();
+    SQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("UPDATE\n  table: %s\n  values: %s\n  whereClause: %s\n  whereArgs: %s\n  conflictAlgorithm: %s",
@@ -513,8 +521,7 @@ public final class BriteDatabase implements Closeable {
   public void execute(String sql) {
     if (logging) log("EXECUTE\n  sql: %s", sql);
 
-    SQLiteDatabase db = getWriteableDatabase();
-    db.execSQL(sql);
+    getWritableDatabase().execSQL(sql);
   }
 
   /**
@@ -530,8 +537,7 @@ public final class BriteDatabase implements Closeable {
   public void execute(String sql, Object... args) {
     if (logging) log("EXECUTE\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
 
-    SQLiteDatabase db = getWriteableDatabase();
-    db.execSQL(sql, args);
+    getWritableDatabase().execSQL(sql, args);
   }
 
   /**
