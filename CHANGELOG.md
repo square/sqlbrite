@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+Version 1.1.1 *(2016-12-20)*
+----------------------------
+
+ * Fix: Correct spelling of `getWritableDatabase()` to match `SQLiteOpenHelper`.
+
+
 Version 1.1.0 *(2016-12-16)*
 ----------------------------
 
