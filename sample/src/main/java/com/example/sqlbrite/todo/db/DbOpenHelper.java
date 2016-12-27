@@ -80,7 +80,7 @@ final class DbOpenHelper extends SQLiteOpenHelper {
         .build());
     db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
         .listId(holidayPresentsListId)
-        .description("Coal for Jesse W.")
+        .description("Cola for Jesse W.")
         .build());
 
     long workListId = db.insert(TodoList.TABLE, null, new TodoList.Builder()
