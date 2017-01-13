@@ -1,12 +1,10 @@
 buildscript {
   dependencies {
     classpath rootProject.ext.androidPlugin
-    classpath 'com.neenbedankt.gradle.plugins:android-apt:1.7'
   }
 }
 
 apply plugin: 'com.android.application'
-apply plugin: 'com.neenbedankt.android-apt'
 apply from: rootProject.file('gradle/android-findbugs.gradle')
 
 dependencies {
@@ -16,7 +14,7 @@ dependencies {
 
   // Dagger dependencies.
   compile rootProject.ext.dagger
-  apt rootProject.ext.daggerCompiler
+  annotationProcessor rootProject.ext.daggerCompiler
 
   // Third-party dependencies.
   compile rootProject.ext.butterKnifeRuntime
@@ -27,8 +25,8 @@ dependencies {
   compile rootProject.ext.rxBinding
 
   provided rootProject.ext.autoValue
-  apt rootProject.ext.autoValue
-  apt rootProject.ext.autoValueParcel
+  annotationProcessor rootProject.ext.autoValue
+  annotationProcessor rootProject.ext.autoValueParcel
 
   provided rootProject.ext.findbugsJsr305
   provided rootProject.ext.findbugsAnnotations
