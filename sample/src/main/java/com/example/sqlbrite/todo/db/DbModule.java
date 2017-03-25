@@ -32,11 +32,13 @@ public final class DbModule {
   }
 
   @Provides @Singleton SqlBrite provideSqlBrite() {
-    return SqlBrite.create(new SqlBrite.Logger() {
-      @Override public void log(String message) {
-        Timber.tag("Database").v(message);
-      }
-    });
+    return new SqlBrite.Builder()
+        .logger(new SqlBrite.Logger() {
+          @Override public void log(String message) {
+            Timber.tag("Database").v(message);
+          }
+        })
+        .build();
   }
 
   @Provides @Singleton BriteDatabase provideDatabase(SqlBrite sqlBrite, SQLiteOpenHelper helper) {
