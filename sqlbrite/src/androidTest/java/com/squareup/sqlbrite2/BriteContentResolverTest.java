@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -22,17 +22,15 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.test.ProviderTestCase2;
 import android.test.mock.MockContentProvider;
-import com.squareup.sqlbrite.SqlBrite.Query;
+import com.squareup.sqlbrite2.SqlBrite.Query;
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.subjects.PublishSubject;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import rx.Observable;
-import rx.Observable.Transformer;
-import rx.Subscription;
-import rx.internal.util.RxRingBuffer;
-import rx.subjects.PublishSubject;
-import rx.subscriptions.Subscriptions;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -46,11 +44,10 @@ public final class BriteContentResolverTest
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new BlockingRecordingObserver();
   private final TestScheduler scheduler = new TestScheduler();
-  private final PublishSubject<Void> killSwitch = PublishSubject.create();
+  private final PublishSubject<Object> killSwitch = PublishSubject.create();
 
   private ContentResolver contentResolver;
   private BriteContentResolver db;
-  private Subscription subscription;
 
   public BriteContentResolverTest() {
     super(TestContentProvider.class, AUTHORITY.getAuthority());
@@ -59,18 +56,18 @@ public final class BriteContentResolverTest
   @Override protected void setUp() throws Exception {
     super.setUp();
     contentResolver = getMockContentResolver();
-    subscription = Subscriptions.empty();
 
     SqlBrite.Logger logger = new SqlBrite.Logger() {
       @Override public void log(String message) {
         logs.add(message);
       }
     };
-    Transformer<Query, Query> queryTransformer = new Transformer<Query, Query>() {
-      @Override public Observable<Query> call(Observable<Query> queryObservable) {
-        return queryObservable.takeUntil(killSwitch);
-      }
-    };
+    ObservableTransformer<Query, Query> queryTransformer =
+        new ObservableTransformer<Query, Query>() {
+          @Override public ObservableSource<Query> apply(Observable<Query> upstream) {
+            return upstream.takeUntil(killSwitch);
+          }
+        };
     db = new BriteContentResolver(contentResolver, logger, scheduler, queryTransformer);
 
     getProvider().init(getContext().getContentResolver());
@@ -78,13 +75,13 @@ public final class BriteContentResolverTest
 
   @Override public void tearDown() {
     o.assertNoMoreEvents();
-    subscription.unsubscribe();
+    o.dispose();
   }
 
   public void testLoggerEnabled() {
     db.setLoggingEnabled(true);
 
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
 
     contentResolver.insert(TABLE, values("key1", "value1"));
@@ -100,7 +97,7 @@ public final class BriteContentResolverTest
   }
 
   public void testCreateQueryObservesInsert() {
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
 
     contentResolver.insert(TABLE, values("key1", "val1"));
@@ -109,7 +106,7 @@ public final class BriteContentResolverTest
 
   public void testCreateQueryObservesUpdate() {
     contentResolver.insert(TABLE, values("key1", "val1"));
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().hasRow("key1", "val1").isExhausted();
 
     contentResolver.update(TABLE, values("key1", "val2"), null, null);
@@ -118,7 +115,7 @@ public final class BriteContentResolverTest
 
   public void testCreateQueryObservesDelete() {
     contentResolver.insert(TABLE, values("key1", "val1"));
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().hasRow("key1", "val1").isExhausted();
 
     contentResolver.delete(TABLE, null, null);
@@ -126,98 +123,30 @@ public final class BriteContentResolverTest
   }
 
   public void testUnsubscribeDoesNotTrigger() {
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
-    subscription.unsubscribe();
+    o.dispose();
 
     contentResolver.insert(TABLE, values("key1", "val1"));
     o.assertNoMoreEvents();
     assertThat(logs).isEmpty();
   }
 
-  public void testQueryNotNotifiedWhenQueryTransformerUnsubscribes() {
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+  public void testQueryNotNotifiedWhenQueryTransformerDisposed() {
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertCursor().isExhausted();
 
-    killSwitch.onNext(null);
+    killSwitch.onNext("kill");
     o.assertIsCompleted();
 
     contentResolver.insert(TABLE, values("key1", "val1"));
     o.assertNoMoreEvents();
   }
 
-  public void testBackpressureSupportedWhenConsumerSlow() {
-    contentResolver.insert(TABLE, values("key1", "val1"));
-    o.doRequest(2);
-
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
-    o.assertCursor()
-        .hasRow("key1", "val1")
-        .isExhausted();
-
-    contentResolver.insert(TABLE, values("key2", "val2"));
-    o.assertCursor()
-        .hasRow("key1", "val1")
-        .hasRow("key2", "val2")
-        .isExhausted();
-
-    contentResolver.insert(TABLE, values("key3", "val3"));
-    o.assertNoMoreEvents();
-
-    contentResolver.insert(TABLE, values("key4", "val4"));
-    o.assertNoMoreEvents();
-
-    o.doRequest(1);
-    o.assertCursor()
-        .hasRow("key1", "val1")
-        .hasRow("key2", "val2")
-        .hasRow("key3", "val3")
-        .hasRow("key4", "val4")
-        .isExhausted();
-
-    contentResolver.insert(TABLE, values("key5", "val5"));
-    o.assertNoMoreEvents();
-    contentResolver.insert(TABLE, values("key6", "val6"));
-    o.assertNoMoreEvents();
-
-    o.doRequest(Long.MAX_VALUE);
-    o.assertCursor()
-        .hasRow("key1", "val1")
-        .hasRow("key2", "val2")
-        .hasRow("key3", "val3")
-        .hasRow("key4", "val4")
-        .hasRow("key5", "val5")
-        .hasRow("key6", "val6")
-        .isExhausted();
-    o.assertNoMoreEvents();
-  }
-
-  public void testBackpressureSupportedWhenSchedulerSlow() {
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
-    o.assertCursor().isExhausted();
-
-    // Switch the scheduler to queue actions.
-    scheduler.runTasksImmediately(false);
-
-    // Shotgun twice as many insertions as the scheduler queue can handle.
-    for (int i = 0; i < RxRingBuffer.SIZE * 2; i++) {
-      contentResolver.insert(TABLE, values("key" + i, "val" + i));
-    }
-
-    scheduler.triggerActions();
-
-    // Assert we got all the events from the queue plus the one buffered from backpressure.
-    // Note: Because of the rebatching request behavior of observeOn, the initial emission is
-    // counted against this amount which is why there is no +1 on SIZE.
-    for (int i = 0; i < RxRingBuffer.SIZE; i++) {
-      o.assertCursor(); // Ignore contents, just assert we got notified.
-    }
-  }
-
   public void testInitialValueAndTriggerUsesScheduler() {
     scheduler.runTasksImmediately(false);
 
-    subscription = db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
+    db.createQuery(TABLE, null, null, null, null, false).subscribe(o);
     o.assertNoMoreEvents();
     scheduler.triggerActions();
     o.assertCursor().isExhausted();

@@ -21,9 +21,9 @@ import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
 import com.google.auto.value.AutoValue;
+import io.reactivex.functions.Function;
 import java.util.Arrays;
 import java.util.Collection;
-import rx.functions.Func1;
 
 @AutoValue
 abstract class ListsItem implements Parcelable {
@@ -47,8 +47,8 @@ abstract class ListsItem implements Parcelable {
   abstract String name();
   abstract int itemCount();
 
-  static Func1<Cursor, ListsItem> MAPPER = new Func1<Cursor, ListsItem>() {
-    @Override public ListsItem call(Cursor cursor) {
+  static Function<Cursor, ListsItem> MAPPER = new Function<Cursor, ListsItem>() {
+    @Override public ListsItem apply(Cursor cursor) {
       long id = Db.getLong(cursor, TodoList.ID);
       String name = Db.getString(cursor, TodoList.NAME);
       int itemCount = Db.getInt(cursor, ITEM_COUNT);

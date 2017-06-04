@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -28,7 +28,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.WorkerThread;
-import com.squareup.sqlbrite.SqlBrite.Query;
+import com.squareup.sqlbrite2.SqlBrite.Logger;
+import com.squareup.sqlbrite2.SqlBrite.Query;
+import io.reactivex.Observable;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.Scheduler;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.functions.Predicate;
+import io.reactivex.subjects.PublishSubject;
 import java.io.Closeable;
 import java.lang.annotation.Retention;
 import java.util.Arrays;
@@ -36,13 +44,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import rx.Observable;
-import rx.Observable.Transformer;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.functions.Action0;
-import rx.functions.Func1;
-import rx.subjects.PublishSubject;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ABORT;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_FAIL;
@@ -51,6 +52,7 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ROLLBACK;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
+import static com.squareup.sqlbrite2.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -61,8 +63,8 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  */
 public final class BriteDatabase implements Closeable {
   private final SQLiteOpenHelper helper;
-  private final SqlBrite.Logger logger;
-  private final Transformer<Query, Query> queryTransformer;
+  private final Logger logger;
+  private final ObservableTransformer<Query, Query> queryTransformer;
 
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   final ThreadLocal<SqliteTransaction> transactions = new ThreadLocal<>();
@@ -102,8 +104,8 @@ public final class BriteDatabase implements Closeable {
       end();
     }
   };
-  private final Action0 ensureNotInTransaction = new Action0() {
-    @Override public void call() {
+  private final Consumer<Object> ensureNotInTransaction = new Consumer<Object>() {
+    @Override public void accept(Object ignored) throws Exception {
       if (transactions.get() != null) {
         throw new IllegalStateException("Cannot subscribe to observable query in a transaction.");
       }
@@ -115,8 +117,8 @@ public final class BriteDatabase implements Closeable {
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger, Scheduler scheduler,
-      Transformer<Query, Query> queryTransformer) {
+  BriteDatabase(SQLiteOpenHelper helper, Logger logger, Scheduler scheduler,
+      ObservableTransformer<Query, Query> queryTransformer) {
     this.helper = helper;
     this.logger = logger;
     this.scheduler = scheduler;
@@ -153,13 +155,6 @@ public final class BriteDatabase implements Closeable {
     return helper.getReadableDatabase();
   }
 
-
-  /** @deprecated Use {@link #getWritableDatabase()}. */
-  @Deprecated
-  @NonNull @CheckResult @WorkerThread
-  public SQLiteDatabase getWriteableDatabase() {
-    return helper.getWritableDatabase();
-  }
 
   /**
    * Create and/or open a database that will be used for reading and writing.
@@ -325,8 +320,8 @@ public final class BriteDatabase implements Closeable {
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull String... args) {
-    Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
-      @Override public Boolean call(Set<String> triggers) {
+    Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
+      @Override public boolean test(Set<String> triggers) {
         return triggers.contains(table);
       }
 
@@ -346,8 +341,8 @@ public final class BriteDatabase implements Closeable {
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull String... args) {
-    Func1<Set<String>, Boolean> tableFilter = new Func1<Set<String>, Boolean>() {
-      @Override public Boolean call(Set<String> triggers) {
+    Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
+      @Override public boolean test(Set<String> triggers) {
         for (String table : tables) {
           if (triggers.contains(table)) {
             return true;
@@ -364,7 +359,7 @@ public final class BriteDatabase implements Closeable {
   }
 
   @CheckResult @NonNull
-  private QueryObservable createQuery(Func1<Set<String>, Boolean> tableFilter, String sql,
+  private QueryObservable createQuery(Predicate<Set<String>> tableFilter, String sql,
       String... args) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
@@ -372,21 +367,14 @@ public final class BriteDatabase implements Closeable {
     }
 
     DatabaseQuery query = new DatabaseQuery(tableFilter, sql, args);
-    final Observable<Query> queryObservable = triggers //
+    return triggers //
         .filter(tableFilter) // Only trigger on tables we care about.
         .map(query) // DatabaseQuery maps to itself to save an allocation.
-        .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
         .startWith(query) //
         .observeOn(scheduler) //
         .compose(queryTransformer) // Apply the user's query transformer.
-        .onBackpressureLatest() // Guard against uncontrollable frequency of scheduler executions.
-        .doOnSubscribe(ensureNotInTransaction);
-    // TODO switch to .to() when non-@Experimental
-    return new QueryObservable(new Observable.OnSubscribe<Query>() {
-      @Override public void call(Subscriber<? super Query> subscriber) {
-        queryObservable.unsafeSubscribe(subscriber);
-      }
-    });
+        .doOnSubscribe(ensureNotInTransaction)
+        .to(QUERY_OBSERVABLE);
   }
 
   /**
@@ -782,12 +770,12 @@ public final class BriteDatabase implements Closeable {
     }
   }
 
-  final class DatabaseQuery extends Query implements Func1<Set<String>, Query> {
-    private final Func1<Set<String>, Boolean> tableFilter;
+  final class DatabaseQuery extends Query implements Function<Set<String>, Query> {
+    private final Object tableFilter;
     private final String sql;
     private final String[] args;
 
-    DatabaseQuery(Func1<Set<String>, Boolean> tableFilter, String sql, String... args) {
+    DatabaseQuery(Object tableFilter, String sql, String... args) {
       this.tableFilter = tableFilter;
       this.sql = sql;
       this.args = args;
@@ -814,7 +802,7 @@ public final class BriteDatabase implements Closeable {
       return sql;
     }
 
-    @Override public Query call(Set<String> ignored) {
+    @Override public Query apply(Set<String> ignored) {
       return this;
     }
   }

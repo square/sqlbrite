@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.content.ContentResolver;
 import android.database.ContentObserver;
@@ -24,17 +24,17 @@ import android.os.Looper;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import com.squareup.sqlbrite2.SqlBrite.Logger;
+import com.squareup.sqlbrite2.SqlBrite.Query;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableTransformer;
+import io.reactivex.Scheduler;
+import io.reactivex.functions.Cancellable;
 import java.util.Arrays;
-import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Observable.Transformer;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.functions.Action0;
-import rx.subscriptions.Subscriptions;
 
-import static com.squareup.sqlbrite.SqlBrite.Logger;
-import static com.squareup.sqlbrite.SqlBrite.Query;
+import static com.squareup.sqlbrite2.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
@@ -48,12 +48,12 @@ public final class BriteContentResolver {
   final ContentResolver contentResolver;
   private final Logger logger;
   private final Scheduler scheduler;
-  private final Transformer<Query, Query> queryTransformer;
+  private final ObservableTransformer<Query, Query> queryTransformer;
 
   volatile boolean logging;
 
   BriteContentResolver(ContentResolver contentResolver, Logger logger, Scheduler scheduler,
-      Transformer<Query, Query> queryTransformer) {
+      ObservableTransformer<Query, Query> queryTransformer) {
     this.contentResolver = contentResolver;
     this.logger = logger;
     this.scheduler = scheduler;
@@ -108,34 +108,31 @@ public final class BriteContentResolver {
         return cursor;
       }
     };
-    OnSubscribe<Query> subscribe = new OnSubscribe<Query>() {
-      @Override public void call(final Subscriber<? super Query> subscriber) {
+    Observable<Query> queries = Observable.create(new ObservableOnSubscribe<Query>() {
+      @Override public void subscribe(final ObservableEmitter<Query> e) throws Exception {
         final ContentObserver observer = new ContentObserver(contentObserverHandler) {
           @Override public void onChange(boolean selfChange) {
-            subscriber.onNext(query);
+            if (!e.isDisposed()) {
+              e.onNext(query);
+            }
           }
         };
         contentResolver.registerContentObserver(uri, notifyForDescendents, observer);
-        subscriber.add(Subscriptions.create(new Action0() {
-          @Override public void call() {
+        e.setCancellable(new Cancellable() {
+          @Override public void cancel() throws Exception {
             contentResolver.unregisterContentObserver(observer);
           }
-        }));
+        });
 
-        subscriber.onNext(query); // Trigger initial query.
-      }
-    };
-    final Observable<Query> queryObservable = Observable.create(subscribe) //
-        .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.
-        .observeOn(scheduler) //
-        .compose(queryTransformer) // Apply the user's query transformer.
-        .onBackpressureLatest(); // Guard against uncontrollable frequency of scheduler executions.
-    // TODO switch to .to() when non-@Experimental
-    return new QueryObservable(new OnSubscribe<Query>() {
-      @Override public void call(Subscriber<? super Query> subscriber) {
-        queryObservable.unsafeSubscribe(subscriber);
+        if (!e.isDisposed()) {
+          e.onNext(query); // Trigger initial query.
+        }
       }
     });
+    return queries //
+        .observeOn(scheduler) //
+        .compose(queryTransformer) // Apply the user's query transformer.
+        .to(QUERY_OBSERVABLE);
   }
 
   void log(String message, Object... args) {

@@ -29,14 +29,14 @@ import android.widget.EditText;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.TodoItem;
-import com.jakewharton.rxbinding.widget.RxTextView;
-import com.squareup.sqlbrite.BriteDatabase;
+import com.jakewharton.rxbinding2.widget.RxTextView;
+import com.squareup.sqlbrite2.BriteDatabase;
+import io.reactivex.Observable;
+import io.reactivex.functions.BiFunction;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
+import io.reactivex.subjects.PublishSubject;
 import javax.inject.Inject;
-import rx.Observable;
-import rx.functions.Action1;
-import rx.functions.Func2;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
 
 import static butterknife.ButterKnife.findById;
 
@@ -71,14 +71,14 @@ public final class NewItemFragment extends DialogFragment {
 
     EditText name = findById(view, android.R.id.input);
     Observable.combineLatest(createClicked, RxTextView.textChanges(name),
-        new Func2<String, CharSequence, String>() {
-          @Override public String call(String ignored, CharSequence text) {
+        new BiFunction<String, CharSequence, String>() {
+          @Override public String apply(String ignored, CharSequence text) {
             return text.toString();
           }
         }) //
         .observeOn(Schedulers.io())
-        .subscribe(new Action1<String>() {
-          @Override public void call(String description) {
+        .subscribe(new Consumer<String>() {
+          @Override public void accept(String description) {
             db.insert(TodoItem.TABLE,
                 new TodoItem.Builder().listId(getListId()).description(description).build());
           }
