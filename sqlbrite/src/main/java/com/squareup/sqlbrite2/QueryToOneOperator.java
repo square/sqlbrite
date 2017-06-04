@@ -16,6 +16,7 @@
 package com.squareup.sqlbrite2;
 
 import android.database.Cursor;
+import android.support.annotation.Nullable;
 import io.reactivex.ObservableOperator;
 import io.reactivex.Observer;
 import io.reactivex.exceptions.Exceptions;
@@ -25,30 +26,26 @@ import io.reactivex.plugins.RxJavaPlugins;
 
 final class QueryToOneOperator<T> implements ObservableOperator<T, SqlBrite.Query> {
   private final Function<Cursor, T> mapper;
-  private final boolean emitDefault;
   private final T defaultValue;
 
-  QueryToOneOperator(Function<Cursor, T> mapper, boolean emitDefault, T defaultValue) {
+  /** A null {@code defaultValue} means nothing will be emitted when empty. */
+  QueryToOneOperator(Function<Cursor, T> mapper, @Nullable T defaultValue) {
     this.mapper = mapper;
-    this.emitDefault = emitDefault;
     this.defaultValue = defaultValue;
   }
 
   @Override public Observer<? super SqlBrite.Query> apply(Observer<? super T> observer) {
-    return new MappingObserver<>(observer, mapper, emitDefault, defaultValue);
+    return new MappingObserver<>(observer, mapper, defaultValue);
   }
 
   static final class MappingObserver<T> extends DisposableObserver<SqlBrite.Query> {
     private final Observer<? super T> downstream;
     private final Function<Cursor, T> mapper;
-    private final boolean emitDefault;
     private final T defaultValue;
 
-    MappingObserver(Observer<? super T> downstream, Function<Cursor, T> mapper, boolean emitDefault,
-        T defaultValue) {
+    MappingObserver(Observer<? super T> downstream, Function<Cursor, T> mapper, T defaultValue) {
       this.downstream = downstream;
       this.mapper = mapper;
-      this.emitDefault = emitDefault;
       this.defaultValue = defaultValue;
     }
 
@@ -77,7 +74,7 @@ final class QueryToOneOperator<T> implements ObservableOperator<T, SqlBrite.Quer
         if (!isDisposed()) {
           if (emit) {
             downstream.onNext(item);
-          } else if (emitDefault) {
+          } else if (defaultValue != null) {
             downstream.onNext(defaultValue);
           }
         }
