@@ -123,9 +123,8 @@ public final class SqlBrite {
      * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
      */
     @CheckResult @NonNull //
-    public static <T> ObservableOperator<T, Query> mapToOne(
-        @NonNull Function<Cursor, T> mapper) {
-      return new QueryToOneOperator<>(mapper, false, null);
+    public static <T> ObservableOperator<T, Query> mapToOne(@NonNull Function<Cursor, T> mapper) {
+      return new QueryToOneOperator<>(mapper, null);
     }
 
     /**
@@ -146,7 +145,7 @@ public final class SqlBrite {
     public static <T> ObservableOperator<T, Query> mapToOneOrDefault(
         @NonNull Function<Cursor, T> mapper, @NonNull T defaultValue) {
       if (defaultValue == null) throw new NullPointerException("defaultValue == null");
-      return new QueryToOneOperator<>(mapper, true, defaultValue);
+      return new QueryToOneOperator<>(mapper, defaultValue);
     }
 
     /**
