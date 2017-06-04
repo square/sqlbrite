@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
+import io.reactivex.Scheduler;
+import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.Disposable;
 import java.util.concurrent.TimeUnit;
-import rx.Scheduler;
-import rx.Subscription;
-import rx.functions.Action0;
 
 final class TestScheduler extends Scheduler {
-  private final rx.schedulers.TestScheduler delegate = new rx.schedulers.TestScheduler();
+  private final io.reactivex.schedulers.TestScheduler delegate =
+      new io.reactivex.schedulers.TestScheduler();
+
   private boolean runTasksImmediately = true;
 
   public void runTasksImmediately(boolean runTasksImmediately) {
@@ -39,28 +41,21 @@ final class TestScheduler extends Scheduler {
   class TestWorker extends Worker {
     private final Worker delegateWorker = delegate.createWorker();
 
-    @Override public Subscription schedule(Action0 action) {
-      Subscription subscription = delegateWorker.schedule(action);
+    @Override
+    public Disposable schedule(@NonNull Runnable run, long delay, @NonNull TimeUnit unit) {
+      Disposable disposable = delegateWorker.schedule(run, delay, unit);
       if (runTasksImmediately) {
         triggerActions();
       }
-      return subscription;
+      return disposable;
     }
 
-    @Override public Subscription schedule(Action0 action, long delayTime, TimeUnit unit) {
-      Subscription subscription = delegateWorker.schedule(action, delayTime, unit);
-      if (runTasksImmediately) {
-        triggerActions();
-      }
-      return subscription;
+    @Override public void dispose() {
+      delegateWorker.dispose();
     }
 
-    @Override public void unsubscribe() {
-      delegateWorker.unsubscribe();
-    }
-
-    @Override public boolean isUnsubscribed() {
-      return delegateWorker.isUnsubscribed();
+    @Override public boolean isDisposed() {
+      return delegateWorker.isDisposed();
     }
   }
 }

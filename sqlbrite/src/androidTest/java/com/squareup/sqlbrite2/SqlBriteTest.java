@@ -1,16 +1,15 @@
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.support.annotation.Nullable;
 import android.support.test.runner.AndroidJUnit4;
-import com.squareup.sqlbrite.SqlBrite.Query;
+import com.squareup.sqlbrite2.SqlBrite.Query;
+import io.reactivex.functions.Function;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import rx.functions.Func1;
-import rx.observers.TestSubscriber;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
@@ -38,19 +37,10 @@ public final class SqlBriteTest {
     }
   }
 
-  @Test public void createDisallowsNull() {
-    try {
-      SqlBrite.create(null);
-      fail();
-    } catch (NullPointerException e) {
-      assertThat(e).hasMessage("logger == null");
-    }
-  }
-
   @Test public void asRowsEmpty() {
     MatrixCursor cursor = new MatrixCursor(COLUMN_NAMES);
     Query query = new CursorQuery(cursor);
-    List<Name> names = query.asRows(Name.MAP).toList().toBlocking().first();
+    List<Name> names = query.asRows(Name.MAP).toList().blockingGet();
     assertThat(names).isEmpty();
   }
 
@@ -60,7 +50,7 @@ public final class SqlBriteTest {
     cursor.addRow(new Object[] { "Bob", "Bobberson" });
 
     Query query = new CursorQuery(cursor);
-    List<Name> names = query.asRows(Name.MAP).toList().toBlocking().first();
+    List<Name> names = query.asRows(Name.MAP).toList().blockingGet();
     assertThat(names).containsExactly(new Name("Alice", "Allison"), new Name("Bob", "Bobberson"));
   }
 
@@ -71,12 +61,12 @@ public final class SqlBriteTest {
 
     Query query = new CursorQuery(cursor);
     final AtomicInteger count = new AtomicInteger();
-    query.asRows(new Func1<Cursor, Name>() {
-      @Override public Name call(Cursor cursor) {
+    query.asRows(new Function<Cursor, Name>() {
+      @Override public Name apply(Cursor cursor) throws Exception {
         count.incrementAndGet();
-        return Name.MAP.call(cursor);
+        return Name.MAP.apply(cursor);
       }
-    }).take(1).toBlocking().first();
+    }).take(1).blockingFirst();
     assertThat(count.get()).isEqualTo(1);
   }
 
@@ -87,24 +77,20 @@ public final class SqlBriteTest {
       }
     };
 
-    TestSubscriber<Name> subscriber = new TestSubscriber<>();
     final AtomicInteger count = new AtomicInteger();
-    nully.asRows(new Func1<Cursor, Name>() {
-      @Override public Name call(Cursor cursor) {
+    nully.asRows(new Function<Cursor, Name>() {
+      @Override public Name apply(Cursor cursor) throws Exception {
         count.incrementAndGet();
-        return Name.MAP.call(cursor);
+        return Name.MAP.apply(cursor);
       }
-    }).subscribe(subscriber);
-
-    subscriber.assertNoValues();
-    subscriber.assertCompleted();
+    }).test().assertNoValues().assertComplete();
 
     assertThat(count.get()).isEqualTo(0);
   }
 
   static final class Name {
-    static final Func1<Cursor, Name> MAP = new Func1<Cursor, Name>() {
-      @Override public Name call(Cursor cursor) {
+    static final Function<Cursor, Name> MAP = new Function<Cursor, Name>() {
+      @Override public Name apply(Cursor cursor) {
         return new Name( //
             cursor.getString(cursor.getColumnIndexOrThrow(FIRST_NAME)),
             cursor.getString(cursor.getColumnIndexOrThrow(LAST_NAME)));

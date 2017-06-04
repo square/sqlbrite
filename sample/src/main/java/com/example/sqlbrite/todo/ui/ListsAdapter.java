@@ -21,11 +21,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
+import io.reactivex.functions.Consumer;
 import java.util.Collections;
 import java.util.List;
-import rx.functions.Action1;
 
-final class ListsAdapter extends BaseAdapter implements Action1<List<ListsItem>> {
+final class ListsAdapter extends BaseAdapter implements Consumer<List<ListsItem>> {
   private final LayoutInflater inflater;
 
   private List<ListsItem> items = Collections.emptyList();
@@ -34,7 +34,7 @@ final class ListsAdapter extends BaseAdapter implements Action1<List<ListsItem>>
     this.inflater = LayoutInflater.from(context);
   }
 
-  @Override public void call(List<ListsItem> items) {
+  @Override public void accept(List<ListsItem> items) {
     this.items = items;
     notifyDataSetChanged();
   }

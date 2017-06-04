@@ -5,7 +5,6 @@ buildscript {
 }
 
 apply plugin: 'com.android.application'
-apply from: rootProject.file('gradle/android-findbugs.gradle')
 
 dependencies {
   // Android dependencies.
@@ -27,9 +26,6 @@ dependencies {
   provided rootProject.ext.autoValue
   annotationProcessor rootProject.ext.autoValue
   annotationProcessor rootProject.ext.autoValueParcel
-
-  provided rootProject.ext.findbugsJsr305
-  provided rootProject.ext.findbugsAnnotations
 
   // In-repo dependencies.
   compile project(':sqlbrite')

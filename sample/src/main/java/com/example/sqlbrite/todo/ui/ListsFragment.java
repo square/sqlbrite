@@ -32,10 +32,10 @@ import butterknife.ButterKnife;
 import butterknife.OnItemClick;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
-import com.squareup.sqlbrite.BriteDatabase;
+import com.squareup.sqlbrite2.BriteDatabase;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.Disposable;
 import javax.inject.Inject;
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
 
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
@@ -57,7 +57,7 @@ public final class ListsFragment extends Fragment {
 
   private Listener listener;
   private ListsAdapter adapter;
-  private Subscription subscription;
+  private Disposable disposable;
 
   @Override public void onAttach(Activity activity) {
     if (!(activity instanceof Listener)) {
@@ -107,7 +107,7 @@ public final class ListsFragment extends Fragment {
 
     getActivity().setTitle("To-Do");
 
-    subscription = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
+    disposable = db.createQuery(ListsItem.TABLES, ListsItem.QUERY)
         .mapToList(ListsItem.MAPPER)
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter);
@@ -115,6 +115,6 @@ public final class ListsFragment extends Fragment {
 
   @Override public void onPause() {
     super.onPause();
-    subscription.unsubscribe();
+    disposable.dispose();
   }
 }

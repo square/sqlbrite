@@ -24,11 +24,11 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
 import com.example.sqlbrite.todo.db.TodoItem;
+import io.reactivex.functions.Consumer;
 import java.util.Collections;
 import java.util.List;
-import rx.functions.Action1;
 
-final class ItemsAdapter extends BaseAdapter implements Action1<List<TodoItem>> {
+final class ItemsAdapter extends BaseAdapter implements Consumer<List<TodoItem>> {
   private final LayoutInflater inflater;
 
   private List<TodoItem> items = Collections.emptyList();
@@ -37,7 +37,7 @@ final class ItemsAdapter extends BaseAdapter implements Action1<List<TodoItem>> 
     inflater = LayoutInflater.from(context);
   }
 
-  @Override public void call(List<TodoItem> items) {
+  @Override public void accept(List<TodoItem> items) {
     this.items = items;
     notifyDataSetChanged();
   }

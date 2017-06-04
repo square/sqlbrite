@@ -35,21 +35,21 @@ import com.example.sqlbrite.todo.TodoApp;
 import com.example.sqlbrite.todo.db.Db;
 import com.example.sqlbrite.todo.db.TodoItem;
 import com.example.sqlbrite.todo.db.TodoList;
-import com.jakewharton.rxbinding.widget.AdapterViewItemClickEvent;
-import com.jakewharton.rxbinding.widget.RxAdapterView;
-import com.squareup.sqlbrite.BriteDatabase;
+import com.jakewharton.rxbinding2.widget.AdapterViewItemClickEvent;
+import com.jakewharton.rxbinding2.widget.RxAdapterView;
+import com.squareup.sqlbrite2.BriteDatabase;
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.BiFunction;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import javax.inject.Inject;
-import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.schedulers.Schedulers;
-import rx.subscriptions.CompositeSubscription;
 
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
-import static com.squareup.sqlbrite.SqlBrite.Query;
+import static com.squareup.sqlbrite2.SqlBrite.Query;
 
 public final class ItemsFragment extends Fragment {
   private static final String KEY_LIST_ID = "list_id";
@@ -92,7 +92,7 @@ public final class ItemsFragment extends Fragment {
 
   private Listener listener;
   private ItemsAdapter adapter;
-  private CompositeSubscription subscriptions;
+  private CompositeDisposable disposables;
 
   private long getListId() {
     return getArguments().getLong(KEY_LIST_ID);
@@ -138,8 +138,8 @@ public final class ItemsFragment extends Fragment {
 
     RxAdapterView.itemClickEvents(listView) //
         .observeOn(Schedulers.io())
-        .subscribe(new Action1<AdapterViewItemClickEvent>() {
-          @Override public void call(AdapterViewItemClickEvent event) {
+        .subscribe(new Consumer<AdapterViewItemClickEvent>() {
+          @Override public void accept(AdapterViewItemClickEvent event) {
             boolean newValue = !adapter.getItem(event.position()).complete();
             db.update(TodoItem.TABLE, new TodoItem.Builder().complete(newValue).build(),
                 TodoItem.ID + " = ?", String.valueOf(event.id()));
@@ -151,11 +151,11 @@ public final class ItemsFragment extends Fragment {
     super.onResume();
     String listId = String.valueOf(getListId());
 
-    subscriptions = new CompositeSubscription();
+    disposables = new CompositeDisposable();
 
     Observable<Integer> itemCount = db.createQuery(TodoItem.TABLE, COUNT_QUERY, listId) //
-        .map(new Func1<Query, Integer>() {
-          @Override public Integer call(Query query) {
+        .map(new Function<Query, Integer>() {
+          @Override public Integer apply(Query query) {
             Cursor cursor = query.run();
             try {
               if (!cursor.moveToNext()) {
@@ -168,8 +168,8 @@ public final class ItemsFragment extends Fragment {
           }
         });
     Observable<String> listName =
-        db.createQuery(TodoList.TABLE, TITLE_QUERY, listId).map(new Func1<Query, String>() {
-          @Override public String call(Query query) {
+        db.createQuery(TodoList.TABLE, TITLE_QUERY, listId).map(new Function<Query, String>() {
+          @Override public String apply(Query query) {
             Cursor cursor = query.run();
             try {
               if (!cursor.moveToNext()) {
@@ -181,20 +181,20 @@ public final class ItemsFragment extends Fragment {
             }
           }
         });
-    subscriptions.add(
-        Observable.combineLatest(listName, itemCount, new Func2<String, Integer, String>() {
-          @Override public String call(String listName, Integer itemCount) {
+    disposables.add(
+        Observable.combineLatest(listName, itemCount, new BiFunction<String, Integer, String>() {
+          @Override public String apply(String listName, Integer itemCount) {
             return listName + " (" + itemCount + ")";
           }
         })
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(new Action1<String>() {
-              @Override public void call(String title) {
+            .subscribe(new Consumer<String>() {
+              @Override public void accept(String title) throws Exception {
                 getActivity().setTitle(title);
               }
             }));
 
-    subscriptions.add(db.createQuery(TodoItem.TABLE, LIST_QUERY, listId)
+    disposables.add(db.createQuery(TodoItem.TABLE, LIST_QUERY, listId)
         .mapToList(TodoItem.MAPPER)
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(adapter));
@@ -202,6 +202,6 @@ public final class ItemsFragment extends Fragment {
 
   @Override public void onPause() {
     super.onPause();
-    subscriptions.unsubscribe();
+    disposables.dispose();
   }
 }

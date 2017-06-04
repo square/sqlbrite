@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.database.Cursor;
 import android.util.Log;
+import io.reactivex.observers.DisposableObserver;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
-import rx.Subscriber;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.squareup.sqlbrite.SqlBrite.Query;
+import static com.squareup.sqlbrite2.SqlBrite.Query;
 
-class RecordingObserver extends Subscriber<Query> {
+class RecordingObserver extends DisposableObserver<Query> {
   private static final Object COMPLETED = "<completed>";
   private static final String TAG = RecordingObserver.class.getSimpleName();
 
   final BlockingDeque<Object> events = new LinkedBlockingDeque<>();
 
-  @Override public final void onCompleted() {
+  @Override public final void onComplete() {
     Log.d(TAG, "onCompleted");
     events.add(COMPLETED);
   }
@@ -43,10 +43,6 @@ class RecordingObserver extends Subscriber<Query> {
   @Override public final void onNext(Query value) {
     Log.d(TAG, "onNext " + value);
     events.add(value.run());
-  }
-
-  public final void doRequest(long amount) {
-    request(amount);
   }
 
   protected Object takeEvent() {

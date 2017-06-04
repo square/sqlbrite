@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite;
+package com.squareup.sqlbrite2;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -21,15 +21,15 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.NonNull;
+import io.reactivex.functions.Function;
 import java.util.Arrays;
 import java.util.Collection;
-import rx.functions.Func1;
 
-import static com.squareup.sqlbrite.TestDb.EmployeeTable.ID;
-import static com.squareup.sqlbrite.TestDb.EmployeeTable.NAME;
-import static com.squareup.sqlbrite.TestDb.EmployeeTable.USERNAME;
-import static com.squareup.sqlbrite.TestDb.ManagerTable.EMPLOYEE_ID;
-import static com.squareup.sqlbrite.TestDb.ManagerTable.MANAGER_ID;
+import static com.squareup.sqlbrite2.TestDb.EmployeeTable.ID;
+import static com.squareup.sqlbrite2.TestDb.EmployeeTable.NAME;
+import static com.squareup.sqlbrite2.TestDb.EmployeeTable.USERNAME;
+import static com.squareup.sqlbrite2.TestDb.ManagerTable.EMPLOYEE_ID;
+import static com.squareup.sqlbrite2.TestDb.ManagerTable.MANAGER_ID;
 
 final class TestDb extends SQLiteOpenHelper {
   static final String TABLE_EMPLOYEE = "employee";
@@ -54,8 +54,8 @@ final class TestDb extends SQLiteOpenHelper {
   }
 
   static final class Employee {
-    static final Func1<Cursor, Employee> MAPPER = new Func1<Cursor, Employee>() {
-      @Override public Employee call(Cursor cursor) {
+    static final Function<Cursor, Employee> MAPPER = new Function<Cursor, Employee>() {
+      @Override public Employee apply(Cursor cursor) {
         return new Employee( //
             cursor.getString(cursor.getColumnIndexOrThrow(EmployeeTable.USERNAME)),
             cursor.getString(cursor.getColumnIndexOrThrow(EmployeeTable.NAME)));

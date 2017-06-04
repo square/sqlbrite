@@ -19,9 +19,9 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.os.Parcelable;
 import com.google.auto.value.AutoValue;
+import io.reactivex.functions.Function;
 import java.util.ArrayList;
 import java.util.List;
-import rx.functions.Func1;
 
 // Note: normally I wouldn't prefix table classes but I didn't want 'List' to be overloaded.
 @AutoValue
@@ -36,8 +36,8 @@ public abstract class TodoList implements Parcelable {
   public abstract String name();
   public abstract boolean archived();
 
-  public static Func1<Cursor, List<TodoList>> MAP = new Func1<Cursor, List<TodoList>>() {
-    @Override public List<TodoList> call(final Cursor cursor) {
+  public static Function<Cursor, List<TodoList>> MAP = new Function<Cursor, List<TodoList>>() {
+    @Override public List<TodoList> apply(final Cursor cursor) {
       try {
         List<TodoList> values = new ArrayList<>(cursor.getCount());
 
