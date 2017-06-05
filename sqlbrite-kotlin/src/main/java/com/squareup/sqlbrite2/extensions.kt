@@ -20,6 +20,7 @@ package com.squareup.sqlbrite2
 import android.database.Cursor
 import com.squareup.sqlbrite2.SqlBrite.Query
 import io.reactivex.Observable
+import java.util.Optional
 
 typealias Mapper<T> = (Cursor) -> T
 
@@ -41,7 +42,7 @@ inline fun <T> Observable<Query>.mapToOne(noinline mapper: Mapper<T>): Observabl
  * Transforms an observable of single-row [Query] to an observable of `T` using `mapper`
  *
  * It is an error for a query to pass through this operator with more than 1 row in its result set.
- * Use `LIMIT 1` on the underlying SQL query to prevent this. Result sets with 0 rows emi
+ * Use `LIMIT 1` on the underlying SQL query to prevent this. Result sets with 0 rows emit
  * `default`.
  *
  * This operator emits `defaultValue` if null is returned from [Query.run].
@@ -51,6 +52,20 @@ inline fun <T> Observable<Query>.mapToOne(noinline mapper: Mapper<T>): Observabl
  */
 inline fun <T> Observable<Query>.mapToOneOrDefault(default: T, noinline mapper: Mapper<T>): Observable<T>
     = lift(Query.mapToOneOrDefault(mapper, default))
+
+/**
+ * Transforms an observable of single-row [Query] to an observable of `T` using `mapper.
+ *
+ * It is an error for a query to pass through this operator with more than 1 row in its result set.
+ * Use `LIMIT 1` on the underlying SQL query to prevent this. Result sets with 0 rows emit
+ * `default`.
+ *
+ * This operator ignores null cursors returned from [Query.run].
+ *
+ * @param mapper Maps the current [Cursor] row to `T`. May not return null.
+ */
+inline fun <T> Observable<Query>.mapToOptional(noinline mapper: Mapper<T>): Observable<Optional<T>>
+    = lift(Query.mapToOptional(mapper))
 
 /**
  * Transforms an observable of [Query] to `List<T>` using `mapper` for each row.
