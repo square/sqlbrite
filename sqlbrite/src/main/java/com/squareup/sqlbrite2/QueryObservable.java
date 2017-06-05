@@ -1,13 +1,16 @@
 package com.squareup.sqlbrite2;
 
 import android.database.Cursor;
+import android.os.Build;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import com.squareup.sqlbrite2.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.functions.Function;
 import java.util.List;
+import java.util.Optional;
 
 /** An {@link Observable} of {@link Query} which offers query-specific convenience operators. */
 public final class QueryObservable extends Observable<Query> {
@@ -76,6 +79,31 @@ public final class QueryObservable extends Observable<Query> {
   public final <T> Observable<T> mapToOneOrDefault(@NonNull Function<Cursor, T> mapper,
       @NonNull T defaultValue) {
     return lift(Query.mapToOneOrDefault(mapper, defaultValue));
+  }
+
+  /**
+   * Given a function mapping the current row of a {@link Cursor} to {@code T}, transform each
+   * emitted {@link Query} which returns a single row to {@code Optional<T>}.
+   * <p>
+   * It is an error for a query to pass through this operator with more than 1 row in its result
+   * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+   * emit {@link Optional#empty() Optional.empty()}
+   * <p>
+   * This method is equivalent to:
+   * <pre>{@code
+   * flatMap(q -> q.asRows(mapper).take(1).map(Optional::of).defaultIfEmpty(Optional.empty())
+   * }</pre>
+   * and a convenience operator for:
+   * <pre>{@code
+   * lift(Query.mapToOptional(mapper))
+   * }</pre>
+   *
+   * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+   */
+  @RequiresApi(Build.VERSION_CODES.N)
+  @CheckResult @NonNull
+  public final <T> Observable<Optional<T>> mapToOptional(@NonNull Function<Cursor, T> mapper) {
+    return lift(Query.mapToOptional(mapper));
   }
 
   /**

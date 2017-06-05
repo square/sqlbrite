@@ -18,9 +18,11 @@ package com.squareup.sqlbrite2;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Build;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.WorkerThread;
 import android.util.Log;
 import io.reactivex.Observable;
@@ -31,6 +33,7 @@ import io.reactivex.ObservableTransformer;
 import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
@@ -146,6 +149,25 @@ public final class SqlBrite {
         @NonNull Function<Cursor, T> mapper, @NonNull T defaultValue) {
       if (defaultValue == null) throw new NullPointerException("defaultValue == null");
       return new QueryToOneOperator<>(mapper, defaultValue);
+    }
+
+    /**
+     * Creates an {@linkplain ObservableOperator operator} which transforms a query returning a
+     * single row to a {@code Optional<T>} using {@code mapper}. Use with {@link Observable#lift}.
+     * <p>
+     * It is an error for a query to pass through this operator with more than 1 row in its result
+     * set. Use {@code LIMIT 1} on the underlying SQL query to prevent this. Result sets with 0 rows
+     * emit {@link Optional#empty() Optional.empty()}.
+     * <p>
+     * This operator ignores {@code null} cursors returned from {@link #run()}.
+     *
+     * @param mapper Maps the current {@link Cursor} row to {@code T}. May not return null.
+     */
+    @RequiresApi(Build.VERSION_CODES.N) //
+    @CheckResult @NonNull //
+    public static <T> ObservableOperator<Optional<T>, Query> mapToOptional(
+        @NonNull Function<Cursor, T> mapper) {
+      return new QueryToOptionalOperator<>(mapper);
     }
 
     /**

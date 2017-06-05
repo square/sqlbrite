@@ -15,9 +15,12 @@
  */
 package com.squareup.sqlbrite2;
 
+import android.annotation.TargetApi;
 import android.database.Cursor;
+import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.SdkSuppress;
 import com.squareup.sqlbrite2.SqlBrite.Query;
 import com.squareup.sqlbrite2.TestDb.Employee;
 import io.reactivex.Observable;
@@ -25,6 +28,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.observers.TestObserver;
 import io.reactivex.schedulers.Schedulers;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -198,5 +202,52 @@ public final class QueryTest {
 
     subscriber.assertNoValues();
     subscriber.assertComplete();
+  }
+
+  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+  @Test public void mapToOptional() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+        .lift(Query.mapToOptional(MAPPER))
+        .test()
+        .assertValue(Optional.of(new Employee("alice", "Alice Allison")));
+  }
+
+  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+  @Test public void mapToOptionalThrowsWhenMapperReturnsNull() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+        .lift(Query.mapToOptional(new Function<Cursor, Employee>() {
+          @Override public Employee apply(Cursor cursor) throws Exception {
+            return null;
+          }
+        }))
+        .test()
+        .assertError(NullPointerException.class)
+        .assertErrorMessage("QueryToOne mapper returned null");
+  }
+
+  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+  @Test public void mapToOptionalThrowsOnMultipleRows() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
+        .lift(Query.mapToOptional(MAPPER))
+        .test()
+        .assertError(IllegalStateException.class)
+        .assertErrorMessage("Cursor returned more than 1 row");
+  }
+  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
+  @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
+  @Test public void mapToOptionalIgnoresNullCursor() {
+    Query nully = new Query() {
+      @Nullable @Override public Cursor run() {
+        return null;
+      }
+    };
+
+    Observable.just(nully)
+        .lift(Query.mapToOptional(MAPPER))
+        .test()
+        .assertValue(Optional.<Employee>empty());
   }
 }
