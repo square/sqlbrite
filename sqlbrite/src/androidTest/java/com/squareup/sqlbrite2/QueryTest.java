@@ -19,6 +19,7 @@ import android.database.Cursor;
 import android.support.annotation.Nullable;
 import android.support.test.InstrumentationRegistry;
 import com.squareup.sqlbrite2.SqlBrite.Query;
+import com.squareup.sqlbrite2.TestDb.Employee;
 import io.reactivex.Observable;
 import io.reactivex.functions.Function;
 import io.reactivex.observers.TestObserver;
@@ -28,6 +29,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.squareup.sqlbrite2.TestDb.Employee.MAPPER;
+import static com.squareup.sqlbrite2.TestDb.SELECT_EMPLOYEES;
+import static com.squareup.sqlbrite2.TestDb.TABLE_EMPLOYEE;
 import static org.junit.Assert.fail;
 
 public final class QueryTest {
@@ -40,16 +44,28 @@ public final class QueryTest {
   }
 
   @Test public void mapToOne() {
-    TestDb.Employee employees = db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES + " LIMIT 1")
-        .lift(Query.mapToOne(TestDb.Employee.MAPPER))
+    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+        .lift(Query.mapToOne(MAPPER))
         .blockingFirst();
-    assertThat(employees).isEqualTo(new TestDb.Employee("alice", "Alice Allison"));
+    assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
+  }
+
+  @Test public void mapToOneThrowsWhenMapperReturnsNull() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+        .lift(Query.mapToOne(new Function<Cursor, Employee>() {
+          @Override public Employee apply(Cursor cursor) throws Exception {
+            return null;
+          }
+        }))
+        .test()
+        .assertError(NullPointerException.class)
+        .assertErrorMessage("QueryToOne mapper returned null");
   }
 
   @Test public void mapToOneThrowsOnMultipleRows() {
-    Observable<TestDb.Employee> employees =
-        db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES + " LIMIT 2") //
-            .lift(Query.mapToOne(TestDb.Employee.MAPPER));
+    Observable<Employee> employees =
+        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
+            .lift(Query.mapToOne(MAPPER));
     try {
       employees.blockingFirst();
       fail();
@@ -65,9 +81,9 @@ public final class QueryTest {
       }
     };
 
-    TestObserver<TestDb.Employee> observer = new TestObserver<>();
+    TestObserver<Employee> observer = new TestObserver<>();
     Observable.just(nully)
-        .lift(Query.mapToOne(TestDb.Employee.MAPPER))
+        .lift(Query.mapToOne(MAPPER))
         .subscribe(observer);
 
     observer.assertNoValues();
@@ -75,27 +91,39 @@ public final class QueryTest {
   }
 
   @Test public void mapToOneOrDefault() {
-    TestDb.Employee employees = db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES + " LIMIT 1")
+    Employee employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
         .lift(Query.mapToOneOrDefault(
-            TestDb.Employee.MAPPER, new TestDb.Employee("fred", "Fred Frederson")))
+            MAPPER, new Employee("fred", "Fred Frederson")))
         .blockingFirst();
-    assertThat(employees).isEqualTo(new TestDb.Employee("alice", "Alice Allison"));
+    assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
   @Test public void mapToOneOrDefaultDisallowsNullDefault() {
     try {
-      Query.mapToOneOrDefault(TestDb.Employee.MAPPER, null);
+      Query.mapToOneOrDefault(MAPPER, null);
       fail();
     } catch (NullPointerException e) {
       assertThat(e).hasMessage("defaultValue == null");
     }
   }
 
+  @Test public void mapToOneOrDefaultThrowsWhenMapperReturnsNull() {
+    db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
+        .lift(Query.mapToOneOrDefault(new Function<Cursor, Employee>() {
+          @Override public Employee apply(Cursor cursor) throws Exception {
+            return null;
+          }
+        }, new Employee("fred", "Fred Frederson")))
+        .test()
+        .assertError(NullPointerException.class)
+        .assertErrorMessage("QueryToOne mapper returned null");
+  }
+
   @Test public void mapToOneOrDefaultThrowsOnMultipleRows() {
-    Observable<TestDb.Employee> employees =
-        db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES + " LIMIT 2") //
+    Observable<Employee> employees =
+        db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
             .lift(Query.mapToOneOrDefault(
-                TestDb.Employee.MAPPER, new TestDb.Employee("fred", "Fred Frederson")));
+                MAPPER, new Employee("fred", "Fred Frederson")));
     try {
       employees.blockingFirst();
       fail();
@@ -105,16 +133,16 @@ public final class QueryTest {
   }
 
   @Test public void mapToOneOrDefaultReturnsDefaultWhenNullCursor() {
-    TestDb.Employee defaultEmployee = new TestDb.Employee("bob", "Bob Bobberson");
+    Employee defaultEmployee = new Employee("bob", "Bob Bobberson");
     Query nully = new Query() {
       @Nullable @Override public Cursor run() {
         return null;
       }
     };
 
-    TestObserver<TestDb.Employee> observer = new TestObserver<>();
+    TestObserver<Employee> observer = new TestObserver<>();
     Observable.just(nully)
-        .lift(Query.mapToOneOrDefault(TestDb.Employee.MAPPER, defaultEmployee))
+        .lift(Query.mapToOneOrDefault(MAPPER, defaultEmployee))
         .subscribe(observer);
 
     observer.assertValues(defaultEmployee);
@@ -122,38 +150,37 @@ public final class QueryTest {
   }
 
   @Test public void mapToList() {
-    List<TestDb.Employee> employees = db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES)
-        .lift(Query.mapToList(TestDb.Employee.MAPPER))
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
+        .lift(Query.mapToList(MAPPER))
         .blockingFirst();
     assertThat(employees).containsExactly( //
-        new TestDb.Employee("alice", "Alice Allison"), //
-        new TestDb.Employee("bob", "Bob Bobberson"), //
-        new TestDb.Employee("eve", "Eve Evenson"));
+        new Employee("alice", "Alice Allison"), //
+        new Employee("bob", "Bob Bobberson"), //
+        new Employee("eve", "Eve Evenson"));
   }
 
   @Test public void mapToListEmptyWhenNoRows() {
-    List<TestDb.Employee> employees = db.createQuery(
-        TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES + " WHERE 1=2")
-        .lift(Query.mapToList(TestDb.Employee.MAPPER))
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " WHERE 1=2")
+        .lift(Query.mapToList(MAPPER))
         .blockingFirst();
     assertThat(employees).isEmpty();
   }
 
   @Test public void mapToListReturnsNullOnMapperNull() {
-    Function<Cursor, TestDb.Employee> mapToNull = new Function<Cursor, TestDb.Employee>() {
+    Function<Cursor, Employee> mapToNull = new Function<Cursor, Employee>() {
       private int count;
 
-      @Override public TestDb.Employee apply(Cursor cursor) throws Exception {
-        return count++ == 2 ? null : TestDb.Employee.MAPPER.apply(cursor);
+      @Override public Employee apply(Cursor cursor) throws Exception {
+        return count++ == 2 ? null : MAPPER.apply(cursor);
       }
     };
-    List<TestDb.Employee> employees = db.createQuery(TestDb.TABLE_EMPLOYEE, TestDb.SELECT_EMPLOYEES) //
+    List<Employee> employees = db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES) //
             .lift(Query.mapToList(mapToNull)) //
             .blockingFirst();
 
     assertThat(employees).containsExactly(
-        new TestDb.Employee("alice", "Alice Allison"),
-        new TestDb.Employee("bob", "Bob Bobberson"),
+        new Employee("alice", "Alice Allison"),
+        new Employee("bob", "Bob Bobberson"),
         null);
   }
 
@@ -164,9 +191,9 @@ public final class QueryTest {
       }
     };
 
-    TestObserver<List<TestDb.Employee>> subscriber = new TestObserver<>();
+    TestObserver<List<Employee>> subscriber = new TestObserver<>();
     Observable.just(nully)
-        .lift(Query.mapToList(TestDb.Employee.MAPPER))
+        .lift(Query.mapToList(MAPPER))
         .subscribe(subscriber);
 
     subscriber.assertNoValues();
