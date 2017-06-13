@@ -16,12 +16,8 @@
 package com.example.sqlbrite.todo.db;
 
 import android.content.ContentValues;
-import android.database.Cursor;
 import android.os.Parcelable;
 import com.google.auto.value.AutoValue;
-import io.reactivex.functions.Function;
-import java.util.ArrayList;
-import java.util.List;
 
 // Note: normally I wouldn't prefix table classes but I didn't want 'List' to be overloaded.
 @AutoValue
@@ -35,24 +31,6 @@ public abstract class TodoList implements Parcelable {
   public abstract long id();
   public abstract String name();
   public abstract boolean archived();
-
-  public static Function<Cursor, List<TodoList>> MAP = new Function<Cursor, List<TodoList>>() {
-    @Override public List<TodoList> apply(final Cursor cursor) {
-      try {
-        List<TodoList> values = new ArrayList<>(cursor.getCount());
-
-        while (cursor.moveToNext()) {
-          long id = Db.getLong(cursor, ID);
-          String name = Db.getString(cursor, NAME);
-          boolean archived = Db.getBoolean(cursor, ARCHIVED);
-          values.add(new AutoValue_TodoList(id, name, archived));
-        }
-        return values;
-      } finally {
-        cursor.close();
-      }
-    }
-  };
 
   public static final class Builder {
     private final ContentValues values = new ContentValues();
