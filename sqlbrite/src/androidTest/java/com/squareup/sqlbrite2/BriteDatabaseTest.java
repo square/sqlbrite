@@ -152,9 +152,10 @@ public final class BriteDatabaseTest {
     assertThat(employees).isEqualTo(new Employee("alice", "Alice Allison"));
   }
 
-  @Ignore("https://github.com/square/sqlbrite/issues/185")
   @Test public void badQueryCallsError() {
-    db.createQuery(TABLE_EMPLOYEE, "SELECT * FROM missing").subscribe(o);
+    // safeSubscribe is needed because the error occurs in onNext and will otherwise bubble up
+    // to the thread exception handler.
+    db.createQuery(TABLE_EMPLOYEE, "SELECT * FROM missing").safeSubscribe(o);
     o.assertErrorContains("no such table: missing");
   }
 
