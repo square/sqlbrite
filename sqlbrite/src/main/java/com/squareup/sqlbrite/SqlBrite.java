@@ -24,12 +24,14 @@ import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.util.Log;
 import java.util.List;
+import java.util.Set;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Func1;
+import rx.subjects.PublishSubject;
 
 /**
  * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
@@ -84,8 +86,8 @@ public final class SqlBrite {
     return new SqlBrite(logger, DEFAULT_TRANSFORMER);
   }
 
-  private final Logger logger;
-  private final Transformer<Query, Query> queryTransformer;
+  final Logger logger;
+  final Transformer<Query, Query> queryTransformer;
 
   SqlBrite(@NonNull Logger logger, @NonNull Transformer<Query, Query> queryTransformer) {
     this.logger = logger;
@@ -105,7 +107,8 @@ public final class SqlBrite {
    */
   @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper,
       @NonNull Scheduler scheduler) {
-    return new BriteDatabase(helper, logger, scheduler, queryTransformer);
+    PublishSubject<Set<String>> triggers = PublishSubject.create();
+    return new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);
   }
 
   /**
