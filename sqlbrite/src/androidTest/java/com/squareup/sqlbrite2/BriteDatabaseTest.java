@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -95,7 +94,8 @@ public final class BriteDatabaseTest {
             return upstream.takeUntil(killSwitch);
           }
         };
-    db = new BriteDatabase(helper, logger, scheduler, queryTransformer);
+    PublishSubject<Set<String>> triggers = PublishSubject.create();
+    db = new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);
   }
 
   @After public void tearDown() {
