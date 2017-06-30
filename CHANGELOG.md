@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+Version 1.1.2 *(2017-06-30)*
+----------------------------
+
+ * Internal architecture changes to support the upcoming 2.0 release and a bridge allowing both 1.x
+   and 2.x to be used at the same time.
+
+
 Version 1.1.1 *(2016-12-20)*
 ----------------------------
 
