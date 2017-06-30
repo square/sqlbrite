@@ -51,17 +51,4 @@ android {
   }
 }
 
-
-if (isCi()) {
-  println 'Running on CI. Adding task to start emulator.'
-
-  task startEmulator << {
-    "$rootDir/gradle/start-emulator.sh".execute().waitFor()
-  }
-
-  android.testVariants.all { variant ->
-    variant.connectedInstrumentTest.dependsOn startEmulator
-  }
-}
-
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
