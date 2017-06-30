@@ -7,10 +7,17 @@ android:
     - build-tools-25.0.1
     - extra-android-m2repository
     - android-25
-    - sys-img-armeabi-v7a-android-23
+    - sys-img-armeabi-v7a-android-18
 
 jdk:
   - oraclejdk8
+
+before_script:
+  # Create and start an emulator for instrumentation tests.
+  - echo no | android create avd --force -n test -t android-18 --abi armeabi-v7a
+  - emulator -avd test -no-audio -no-window &
+  - android-wait-for-emulator
+  - adb shell input keyevent 82
 
 after_success:
   - .buildscript/deploy_snapshot.sh
