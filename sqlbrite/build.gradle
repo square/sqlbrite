@@ -23,6 +23,8 @@ android {
   buildToolsVersion rootProject.ext.buildToolsVersion
 
   defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+
     testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
   }
 
