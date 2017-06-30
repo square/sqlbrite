@@ -32,8 +32,10 @@ import io.reactivex.ObservableOperator;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
+import io.reactivex.subjects.PublishSubject;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
@@ -76,8 +78,8 @@ public final class SqlBrite {
     }
   }
 
-  private final Logger logger;
-  private final ObservableTransformer<Query, Query> queryTransformer;
+  final Logger logger;
+  final ObservableTransformer<Query, Query> queryTransformer;
 
   SqlBrite(@NonNull Logger logger, @NonNull ObservableTransformer<Query, Query> queryTransformer) {
     this.logger = logger;
@@ -97,7 +99,8 @@ public final class SqlBrite {
    */
   @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper,
       @NonNull Scheduler scheduler) {
-    return new BriteDatabase(helper, logger, scheduler, queryTransformer);
+    PublishSubject<Set<String>> triggers = PublishSubject.create();
+    return new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);
   }
 
   /**
