@@ -38,11 +38,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.Observable.Transformer;
+import rx.Observer;
 import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Func1;
-import rx.subjects.PublishSubject;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ABORT;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_FAIL;
@@ -66,8 +66,10 @@ public final class BriteDatabase implements Closeable {
 
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   final ThreadLocal<SqliteTransaction> transactions = new ThreadLocal<>();
-  /** Publishes sets of tables which have changed. */
-  private final PublishSubject<Set<String>> triggers = PublishSubject.create();
+  /** Publishes the tables which have changed. */
+  private final Observable<Set<String>> triggerSource;
+  /** Consumes the tables which have changed. Eventually propagated to {@link #triggerSource}. */
+  private final Observer<Set<String>> triggerSink;
 
   private final Transaction transaction = new Transaction() {
     @Override public void markSuccessful() {
@@ -115,10 +117,13 @@ public final class BriteDatabase implements Closeable {
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger, Scheduler scheduler,
+  BriteDatabase(SQLiteOpenHelper helper, SqlBrite.Logger logger,
+      Observable<Set<String>> triggerSource, Observer<Set<String>> triggerSink, Scheduler scheduler,
       Transformer<Query, Query> queryTransformer) {
     this.helper = helper;
     this.logger = logger;
+    this.triggerSource = triggerSource;
+    this.triggerSink = triggerSink;
     this.scheduler = scheduler;
     this.queryTransformer = queryTransformer;
   }
@@ -191,7 +196,7 @@ public final class BriteDatabase implements Closeable {
       transaction.addAll(tables);
     } else {
       if (logging) log("TRIGGER %s", tables);
-      triggers.onNext(tables);
+      triggerSink.onNext(tables);
     }
   }
 
@@ -372,7 +377,7 @@ public final class BriteDatabase implements Closeable {
     }
 
     DatabaseQuery query = new DatabaseQuery(tableFilter, sql, args);
-    final Observable<Query> queryObservable = triggers //
+    final Observable<Query> queryObservable = triggerSource //
         .filter(tableFilter) // Only trigger on tables we care about.
         .map(query) // DatabaseQuery maps to itself to save an allocation.
         .onBackpressureLatest() // Guard against uncontrollable frequency of upstream emissions.

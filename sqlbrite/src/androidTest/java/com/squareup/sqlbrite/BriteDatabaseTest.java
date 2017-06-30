@@ -95,7 +95,8 @@ public final class BriteDatabaseTest {
         return queryObservable.takeUntil(killSwitch);
       }
     };
-    db = new BriteDatabase(helper, logger, scheduler, queryTransformer);
+    PublishSubject<Set<String>> triggers = PublishSubject.create();
+    db = new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);
   }
 
   @After public void tearDown() {
