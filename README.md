@@ -148,17 +148,17 @@ Download
 --------
 
 ```groovy
-compile 'com.squareup.sqlbrite:sqlbrite:2.0.0'
+compile 'com.squareup.sqlbrite2:sqlbrite:2.0.0'
 ```
 
 For the 'interop' module that bridges 1.x and 2.x:
 ```groovy
-compile 'com.squareup.sqlbrite:sqlbrite-interop:2.0.0'
+compile 'com.squareup.sqlbrite2:sqlbrite-interop:2.0.0'
 ```
 
 For the 'kotlin' module that adds extension functions to `Observable<Query>`:
 ```groovy
-compile 'com.squareup.sqlbrite:sqlbrite-kotlin:2.0.0'
+compile 'com.squareup.sqlbrite2:sqlbrite-kotlin:2.0.0'
 ```
 
 

@@ -4,6 +4,8 @@ Change Log
 Version 2.0.0 *(2017-07-07)*
 ----------------------------
 
+Group ID has changed to `com.squareup.sqlbrite2`.
+
  * New: RxJava 2.x support. Backpressure is no longer supported as evidenced by the use of
    `Observable`. If you want to slow down query notifications based on backpressure or another metric
    like time then you should apply those operators yourself.
