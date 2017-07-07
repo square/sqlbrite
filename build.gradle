@@ -23,6 +23,8 @@ ext {
   androidPlugin = 'com.android.tools.build:gradle:2.2.2'
   kotlinPlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
+  sqlBriteV1 = 'com.squareup.sqlbrite:sqlbrite:1.1.2'
+
   // Android dependencies.
   supportV4 = 'com.android.support:support-v4:25.3.1'
   supportAnnotations = 'com.android.support:support-annotations:25.3.1'
