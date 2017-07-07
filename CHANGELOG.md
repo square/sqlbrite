@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+Version 2.0.0 *(2017-07-07)*
+----------------------------
+
+ * New: RxJava 2.x support. Backpressure is no longer supported as evidenced by the use of
+   `Observable`. If you want to slow down query notifications based on backpressure or another metric
+   like time then you should apply those operators yourself.
+ * New: `mapToOptional` for queries that return 0 or 1 rows.
+ * New: `sqlbrite-kotlin` module provides `mapTo*` extension functions for `Observable<Query>`.
+ * New: `sqlbrite-interop` module allows bridging 1.x and 2.x libraries together so that notifications
+   from each trigger queries from the other.
+
+Note: This version only supports RxJava 2.
+
+
 Version 1.1.2 *(2017-06-30)*
 ----------------------------
 

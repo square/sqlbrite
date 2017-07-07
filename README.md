@@ -1,5 +1,5 @@
-SQLBrite
-========
+SQL Brite
+=========
 
 A lightweight wrapper around `SQLiteOpenHelper` and `ContentResolver` which introduces reactive
 stream semantics to queries.
@@ -134,13 +134,13 @@ number of queries and data changes.
 Philosophy
 ----------
 
-SqlBrite's only responsibility is to be a mechanism for coordinating and composing the notification
+SQL Brite's only responsibility is to be a mechanism for coordinating and composing the notification
 of updates to tables such that you can update queries as soon as data changes.
 
 This library is not an ORM. It is not a type-safe query mechanism. It won't serialize the same POJOs
 you use for Gson. It's not going to perform database migrations for you.
 
-Some of these features are offered by [SQLDelight][sqldelight] which can be used with SQLBrite.
+Some of these features are offered by [SQL Delight][sqldelight] which can be used with SQL Brite.
 
 
 
@@ -148,8 +148,19 @@ Download
 --------
 
 ```groovy
-compile 'com.squareup.sqlbrite:sqlbrite:1.1.2'
+compile 'com.squareup.sqlbrite:sqlbrite:2.0.0'
 ```
+
+For the 'interop' module that bridges 1.x and 2.x:
+```groovy
+compile 'com.squareup.sqlbrite:sqlbrite-interop:2.0.0'
+```
+
+For the 'kotlin' module that adds extension functions to `Observable<Query>`:
+```groovy
+compile 'com.squareup.sqlbrite:sqlbrite-kotlin:2.0.0'
+```
+
 
 Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
 
