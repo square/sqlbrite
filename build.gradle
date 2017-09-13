@@ -1,13 +1,27 @@
-allprojects {
-  buildscript {
-    repositories {
-      mavenCentral()
-      jcenter()
-    }
-  }
+buildscript {
+  ext.versions = [
+      'minSdk': 14,
+      'compileSdk': 26,
+      'buildTools': '26.0.1',
+      'kotlin': '1.1.4-2',
+  ]
 
   repositories {
     mavenCentral()
+    google()
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.0.0-beta5'
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
+  }
+}
+
+allprojects {
+  repositories {
+    mavenCentral()
+    google()
   }
 
   group = GROUP
@@ -15,35 +29,27 @@ allprojects {
 }
 
 ext {
-  minSdkVersion = 9
-  compileSdkVersion = 25
-  buildToolsVersion = '25.0.1'
-  kotlinVersion = '1.1.2-4'
-
-  androidPlugin = 'com.android.tools.build:gradle:2.2.2'
-  kotlinPlugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-
   sqlBriteV1 = 'com.squareup.sqlbrite:sqlbrite:1.1.2'
 
   // Android dependencies.
-  supportV4 = 'com.android.support:support-v4:25.3.1'
-  supportAnnotations = 'com.android.support:support-annotations:25.3.1'
+  supportV4 = 'com.android.support:support-v4:26.0.2'
+  supportAnnotations = 'com.android.support:support-annotations:26.0.2'
   supportTestRunner = 'com.android.support.test:runner:0.5'
 
   // Third-party dependencies.
-  kotlinStdLib = "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-  dagger = 'com.google.dagger:dagger:2.8'
-  daggerCompiler = 'com.google.dagger:dagger-compiler:2.8'
-  butterKnifeRuntime = 'com.jakewharton:butterknife:8.4.0'
-  butterKnifeCompiler = 'com.jakewharton:butterknife-compiler:8.4.0'
-  timber = 'com.jakewharton.timber:timber:4.3.1'
-  autoValue = 'com.google.auto.value:auto-value:1.3'
+  kotlinStdLib = "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
+  dagger = 'com.google.dagger:dagger:2.11'
+  daggerCompiler = 'com.google.dagger:dagger-compiler:2.11'
+  butterKnifeRuntime = 'com.jakewharton:butterknife:8.8.1'
+  butterKnifeCompiler = 'com.jakewharton:butterknife-compiler:8.8.1'
+  timber = 'com.jakewharton.timber:timber:4.5.1'
+  autoValue = 'com.google.auto.value:auto-value:1.5'
   autoValueParcel = 'com.ryanharter.auto.value:auto-value-parcel:0.2.5'
-  rxJava = 'io.reactivex.rxjava2:rxjava:2.1.0'
+  rxJava = 'io.reactivex.rxjava2:rxjava:2.1.3'
   rxAndroid = 'io.reactivex.rxjava2:rxandroid:2.0.1'
   rxBinding = 'com.jakewharton.rxbinding2:rxbinding:2.0.0'
   junit = 'junit:junit:4.12'
-  truth = 'com.google.truth:truth:0.30'
+  truth = 'com.google.truth:truth:0.35'
 }
 
 configurations {
