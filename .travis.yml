@@ -4,20 +4,29 @@ android:
   components:
     - tools
     - platform-tools
-    - build-tools-25.0.1
-    - extra-android-m2repository
-    - android-25
-    - sys-img-armeabi-v7a-android-18
 
 jdk:
   - oraclejdk8
 
+before_install:
+  # Install SDK license so Android Gradle plugin can install deps.
+  - mkdir "$ANDROID_HOME/licenses" || true
+  - echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > "$ANDROID_HOME/licenses/android-sdk-license"
+  # Install the rest of tools (e.g., avdmanager)
+  - sdkmanager tools
+  # Install the system image
+  - sdkmanager "system-images;android-18;default;armeabi-v7a"
+  # Create and start emulator for the script. Meant to race the install task.
+  - echo no | avdmanager create avd --force -n test -k "system-images;android-18;default;armeabi-v7a"
+  - $ANDROID_HOME/emulator/emulator -avd test -no-audio -no-window &
+
+install: ./gradlew clean assemble assembleAndroidTest --stacktrace
+
 before_script:
-  # Create and start an emulator for instrumentation tests.
-  - echo no | android create avd --force -n test -t android-18 --abi armeabi-v7a
-  - emulator -avd test -no-audio -no-window &
   - android-wait-for-emulator
   - adb shell input keyevent 82
+
+script: ./gradlew check connectedCheck --stacktrace
 
 after_success:
   - .buildscript/deploy_snapshot.sh
