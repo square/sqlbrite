@@ -36,6 +36,9 @@ ext {
   supportAnnotations = 'com.android.support:support-annotations:26.0.2'
   supportTestRunner = 'com.android.support.test:runner:0.5'
 
+  supportSqlite = 'android.arch.persistence.room:support-db:1.0.0-alpha9'
+  supportSqliteFramework = 'android.arch.persistence.room:support-db-impl:1.0.0-alpha9'
+
   // Third-party dependencies.
   kotlinStdLib = "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
   dagger = 'com.google.dagger:dagger:2.11'

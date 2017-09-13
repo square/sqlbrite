@@ -3,9 +3,11 @@ apply plugin: 'com.android.library'
 dependencies {
   compile rootProject.ext.rxJava
   compile rootProject.ext.supportAnnotations
+  compile rootProject.ext.supportSqlite
 
   androidTestCompile rootProject.ext.supportTestRunner
   androidTestCompile rootProject.ext.truth
+  androidTestCompile rootProject.ext.supportSqliteFramework
 }
 
 def isCi() {

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -22,7 +22,7 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.test.ProviderTestCase2;
 import android.test.mock.MockContentProvider;
-import com.squareup.sqlbrite2.SqlBrite.Query;
+import com.squareup.sqlbrite3.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;

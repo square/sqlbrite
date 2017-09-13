@@ -13,22 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.annotation.TargetApi;
+import android.arch.persistence.db.SupportSQLiteDatabase;
+import android.arch.persistence.db.SupportSQLiteOpenHelper;
+import android.arch.persistence.db.SupportSQLiteOpenHelper.Configuration;
+import android.arch.persistence.db.SupportSQLiteOpenHelper.Factory;
+import android.arch.persistence.db.SupportSQLiteStatement;
+import android.arch.persistence.db.framework.FrameworkSQLiteOpenHelperFactory;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteStatement;
 import android.os.Build;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.SdkSuppress;
 import android.support.test.runner.AndroidJUnit4;
-import com.squareup.sqlbrite2.BriteDatabase.Transaction;
-import com.squareup.sqlbrite2.RecordingObserver.CursorAssert;
-import com.squareup.sqlbrite2.TestDb.Employee;
+import com.squareup.sqlbrite3.BriteDatabase.Transaction;
+import com.squareup.sqlbrite3.RecordingObserver.CursorAssert;
+import com.squareup.sqlbrite3.TestDb.Employee;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.ObservableTransformer;
@@ -52,22 +56,23 @@ import org.junit.runner.RunWith;
 
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static com.google.common.truth.Truth.assertThat;
-import static com.squareup.sqlbrite2.SqlBrite.Query;
-import static com.squareup.sqlbrite2.TestDb.BOTH_TABLES;
-import static com.squareup.sqlbrite2.TestDb.EmployeeTable.NAME;
-import static com.squareup.sqlbrite2.TestDb.EmployeeTable.USERNAME;
-import static com.squareup.sqlbrite2.TestDb.SELECT_EMPLOYEES;
-import static com.squareup.sqlbrite2.TestDb.SELECT_MANAGER_LIST;
-import static com.squareup.sqlbrite2.TestDb.TABLE_EMPLOYEE;
-import static com.squareup.sqlbrite2.TestDb.TABLE_MANAGER;
-import static com.squareup.sqlbrite2.TestDb.employee;
-import static com.squareup.sqlbrite2.TestDb.manager;
+import static com.squareup.sqlbrite3.SqlBrite.Query;
+import static com.squareup.sqlbrite3.TestDb.BOTH_TABLES;
+import static com.squareup.sqlbrite3.TestDb.EmployeeTable.NAME;
+import static com.squareup.sqlbrite3.TestDb.EmployeeTable.USERNAME;
+import static com.squareup.sqlbrite3.TestDb.SELECT_EMPLOYEES;
+import static com.squareup.sqlbrite3.TestDb.SELECT_MANAGER_LIST;
+import static com.squareup.sqlbrite3.TestDb.TABLE_EMPLOYEE;
+import static com.squareup.sqlbrite3.TestDb.TABLE_MANAGER;
+import static com.squareup.sqlbrite3.TestDb.employee;
+import static com.squareup.sqlbrite3.TestDb.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.fail;
 
 @RunWith(AndroidJUnit4.class) //
 public final class BriteDatabaseTest {
+  private final TestDb testDb = new TestDb();
   private final List<String> logs = new ArrayList<>();
   private final RecordingObserver o = new RecordingObserver();
   private final TestScheduler scheduler = new TestScheduler();
@@ -75,12 +80,18 @@ public final class BriteDatabaseTest {
 
   @Rule public final TemporaryFolder dbFolder = new TemporaryFolder();
 
-  private TestDb helper;
-  private SQLiteDatabase real;
+  private SupportSQLiteDatabase real;
   private BriteDatabase db;
 
   @Before public void setUp() throws IOException {
-    helper = new TestDb(InstrumentationRegistry.getContext(), dbFolder.newFile().getPath());
+    Configuration configuration = Configuration.builder(InstrumentationRegistry.getContext())
+        .callback(testDb)
+        .version(1)
+        .name(dbFolder.newFile().getPath())
+        .build();
+
+    Factory factory = new FrameworkSQLiteOpenHelperFactory();
+    SupportSQLiteOpenHelper helper = factory.create(configuration);
     real = helper.getWritableDatabase();
 
     SqlBrite.Logger logger = new SqlBrite.Logger() {
@@ -314,7 +325,7 @@ public final class BriteDatabaseTest {
         .isExhausted();
 
     // A new manager also triggers and it is in our result set.
-    db.insert(TABLE_MANAGER, manager(helper.bobId, helper.eveId));
+    db.insert(TABLE_MANAGER, manager(testDb.bobId, testDb.eveId));
     o.assertCursor()
         .hasRow("Eve Evenson", "Alice Allison")
         .hasRow("Bob Bobberson", "Eve Evenson")
@@ -525,8 +536,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertAndTrigger() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") "
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") "
         + "VALUES ('Chad Chadson', 'chad')");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -546,8 +557,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertAndDontTrigger() {
-    SQLiteStatement statement = real.compileStatement("INSERT OR IGNORE INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") "
+    SupportSQLiteStatement statement = real.compileStatement("INSERT OR IGNORE INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") "
         + "VALUES ('Alice Allison', 'alice')");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -562,8 +573,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertAndTriggerMultipleTables() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") "
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") "
         + "VALUES ('Chad Chadson', 'chad')");
 
     final RecordingObserver managerObserver = new RecordingObserver();
@@ -579,7 +590,8 @@ public final class BriteDatabaseTest {
         .hasRow("eve", "Eve Evenson")
         .isExhausted();
 
-    final Set<String> employeeAndManagerTables = Collections.unmodifiableSet(new HashSet<>(BOTH_TABLES));
+    final Set<String> employeeAndManagerTables = Collections.unmodifiableSet(new HashSet<>(
+        BOTH_TABLES));
     db.executeInsert(employeeAndManagerTables, statement);
 
     o.assertCursor()
@@ -594,8 +606,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertAndTriggerNoTables() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") "
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") "
         + "VALUES ('Chad Chadson', 'chad')");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -611,8 +623,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertThrowsAndDoesNotTrigger() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") "
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") "
         + "VALUES ('Alice Allison', 'alice')");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
@@ -628,8 +640,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertWithArgsAndTrigger() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") VALUES (?, ?)");
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") VALUES (?, ?)");
     statement.bindString(1, "Chad Chadson");
     statement.bindString(2, "chad");
 
@@ -650,8 +662,8 @@ public final class BriteDatabaseTest {
   }
 
   @Test public void executeInsertWithArgsThrowsAndDoesNotTrigger() {
-    SQLiteStatement statement = real.compileStatement("INSERT INTO " + TABLE_EMPLOYEE + " ("
-        + NAME + ", " + USERNAME + ") VALUES (?, ?)");
+    SupportSQLiteStatement statement = real.compileStatement("INSERT INTO "
+        + TABLE_EMPLOYEE + " (" + NAME + ", " + USERNAME + ") VALUES (?, ?)");
     statement.bindString(1, "Alice Aliison");
     statement.bindString(2, "alice");
 
@@ -670,7 +682,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteAndTrigger() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + NAME + " = 'Zach'");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -691,7 +703,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteAndDontTrigger() {
-    SQLiteStatement statement = real.compileStatement(""
+    SupportSQLiteStatement statement = real.compileStatement(""
         + "UPDATE " + TABLE_EMPLOYEE
         + " SET " + NAME + " = 'Zach'"
         + " WHERE " + NAME + " = 'Rob'");
@@ -710,7 +722,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteAndTriggerWithMultipleTables() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + NAME + " = 'Zach'");
 
 
@@ -743,7 +755,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteAndTriggerWithNoTables() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + NAME + " = 'Zach'");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
@@ -761,7 +773,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteThrowsAndDoesNotTrigger() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + USERNAME + " = 'alice'");
 
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES)
@@ -779,7 +791,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteWithArgsAndTrigger() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + NAME + " = ?");
     statement.bindString(1, "Zach");
 
@@ -801,7 +813,7 @@ public final class BriteDatabaseTest {
   @TargetApi(Build.VERSION_CODES.HONEYCOMB)
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.HONEYCOMB)
   @Test public void executeUpdateDeleteWithArgsThrowsAndDoesNotTrigger() {
-    SQLiteStatement statement = real.compileStatement(
+    SupportSQLiteStatement statement = real.compileStatement(
         "UPDATE " + TABLE_EMPLOYEE + " SET " + USERNAME + " = ?");
     statement.bindString(1, "alice");
 
@@ -1091,7 +1103,7 @@ public final class BriteDatabaseTest {
 
       transactionInner = db.newTransaction();
       try {
-        db.insert(TABLE_MANAGER, manager(helper.aliceId, helper.bobId));
+        db.insert(TABLE_MANAGER, manager(testDb.aliceId, testDb.bobId));
         transactionInner.markSuccessful();
       } finally {
         transactionInner.end();

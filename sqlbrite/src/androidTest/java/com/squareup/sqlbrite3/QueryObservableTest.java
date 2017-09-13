@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import com.squareup.sqlbrite2.SqlBrite.Query;
+import com.squareup.sqlbrite3.QueryObservable;
+import com.squareup.sqlbrite3.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.functions.Function;
 import org.junit.Test;

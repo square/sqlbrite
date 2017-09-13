@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.database.Cursor;
 import android.util.Log;
@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.squareup.sqlbrite2.SqlBrite.Query;
+import static com.squareup.sqlbrite3.SqlBrite.Query;
 
 class RecordingObserver extends DisposableObserver<Query> {
   private static final Object COMPLETED = "<completed>";

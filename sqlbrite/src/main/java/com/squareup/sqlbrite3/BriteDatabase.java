@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
+import android.arch.persistence.db.SupportSQLiteDatabase;
+import android.arch.persistence.db.SupportSQLiteOpenHelper;
+import android.arch.persistence.db.SupportSQLiteStatement;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -28,8 +31,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.WorkerThread;
-import com.squareup.sqlbrite2.SqlBrite.Logger;
-import com.squareup.sqlbrite2.SqlBrite.Query;
+import com.squareup.sqlbrite3.SqlBrite.Logger;
+import com.squareup.sqlbrite3.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.Observer;
@@ -52,7 +55,7 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ROLLBACK;
 import static android.os.Build.VERSION_CODES.HONEYCOMB;
-import static com.squareup.sqlbrite2.QueryObservable.QUERY_OBSERVABLE;
+import static com.squareup.sqlbrite3.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -62,7 +65,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * the result of a query. Create using a {@link SqlBrite} instance.
  */
 public final class BriteDatabase implements Closeable {
-  private final SQLiteOpenHelper helper;
+  private final SupportSQLiteOpenHelper helper;
   private final Logger logger;
   private final ObservableTransformer<Query, Query> queryTransformer;
 
@@ -119,7 +122,7 @@ public final class BriteDatabase implements Closeable {
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(SQLiteOpenHelper helper, Logger logger, Observable<Set<String>> triggerSource,
+  BriteDatabase(SupportSQLiteOpenHelper helper, Logger logger, Observable<Set<String>> triggerSource,
       Observer<Set<String>> triggerSink, Scheduler scheduler,
       ObservableTransformer<Query, Query> queryTransformer) {
     this.helper = helper;
@@ -156,7 +159,7 @@ public final class BriteDatabase implements Closeable {
    *     or {@link #close} is called.
    */
   @NonNull @CheckResult @WorkerThread
-  public SQLiteDatabase getReadableDatabase() {
+  public SupportSQLiteDatabase getReadableDatabase() {
     return helper.getReadableDatabase();
   }
 
@@ -181,7 +184,7 @@ public final class BriteDatabase implements Closeable {
    * @return a read/write database object valid until {@link #close} is called
    */
   @NonNull @CheckResult @WorkerThread
-  public SQLiteDatabase getWritableDatabase() {
+  public SupportSQLiteDatabase getWritableDatabase() {
     return helper.getWritableDatabase();
   }
 
@@ -324,7 +327,7 @@ public final class BriteDatabase implements Closeable {
    */
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final String table, @NonNull String sql,
-      @NonNull String... args) {
+      @NonNull Object... args) {
     Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
       @Override public boolean test(Set<String> triggers) {
         return triggers.contains(table);
@@ -338,14 +341,14 @@ public final class BriteDatabase implements Closeable {
   }
 
   /**
-   * See {@link #createQuery(String, String, String...)} for usage. This overload allows for
+   * See {@link #createQuery(String, String, Object...)} for usage. This overload allows for
    * monitoring multiple tables for changes.
    *
    * @see SQLiteDatabase#rawQuery(String, String[])
    */
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
-      @NonNull String... args) {
+      @NonNull Object... args) {
     Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
       @Override public boolean test(Set<String> triggers) {
         for (String table : tables) {
@@ -365,7 +368,7 @@ public final class BriteDatabase implements Closeable {
 
   @CheckResult @NonNull
   private QueryObservable createQuery(Predicate<Set<String>> tableFilter, String sql,
-      String... args) {
+      Object... args) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
           + "Use query() for a query inside a transaction.");
@@ -385,12 +388,12 @@ public final class BriteDatabase implements Closeable {
   /**
    * Runs the provided SQL and returns a {@link Cursor} over the result set.
    *
-   * @see SQLiteDatabase#rawQuery(String, String[])
+   * @see SupportSQLiteDatabase#query(String, Object[])
    */
   @CheckResult @WorkerThread
-  public Cursor query(@NonNull String sql, @NonNull String... args) {
+  public Cursor query(@NonNull String sql, @NonNull Object... args) {
     long startNanos = nanoTime();
-    Cursor cursor = getReadableDatabase().rawQuery(sql, args);
+    Cursor cursor = getReadableDatabase().query(sql, args);
     long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
 
     if (logging) {
@@ -418,13 +421,13 @@ public final class BriteDatabase implements Closeable {
   @WorkerThread
   public long insert(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm) {
-    SQLiteDatabase db = getWritableDatabase();
+    SupportSQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("INSERT\n  table: %s\n  values: %s\n  conflictAlgorithm: %s", table, values,
           conflictString(conflictAlgorithm));
     }
-    long rowId = db.insertWithOnConflict(table, null, values, conflictAlgorithm);
+    long rowId = db.insert(table, conflictAlgorithm, values);
 
     if (logging) log("INSERT id: %s", rowId);
 
@@ -439,12 +442,12 @@ public final class BriteDatabase implements Closeable {
    * Delete rows from the specified {@code table} and notify any subscribed queries. This method
    * will not trigger a notification if no rows were deleted.
    *
-   * @see SQLiteDatabase#delete(String, String, String[])
+   * @see SupportSQLiteDatabase#delete(String, String, Object[])
    */
   @WorkerThread
   public int delete(@NonNull String table, @Nullable String whereClause,
       @Nullable String... whereArgs) {
-    SQLiteDatabase db = getWritableDatabase();
+    SupportSQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("DELETE\n  table: %s\n  whereClause: %s\n  whereArgs: %s", table, whereClause,
@@ -465,7 +468,7 @@ public final class BriteDatabase implements Closeable {
    * Update rows in the specified {@code table} and notify any subscribed queries. This method
    * will not trigger a notification if no rows were updated.
    *
-   * @see SQLiteDatabase#update(String, ContentValues, String, String[])
+   * @see SupportSQLiteDatabase#update(String, int, ContentValues, String, Object[])
    */
   @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
@@ -477,20 +480,20 @@ public final class BriteDatabase implements Closeable {
    * Update rows in the specified {@code table} and notify any subscribed queries. This method
    * will not trigger a notification if no rows were updated.
    *
-   * @see SQLiteDatabase#updateWithOnConflict(String, ContentValues, String, String[], int)
+   * @see SupportSQLiteDatabase#update(String, int, ContentValues, String, Object[])
    */
   @WorkerThread
   public int update(@NonNull String table, @NonNull ContentValues values,
       @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
       @Nullable String... whereArgs) {
-    SQLiteDatabase db = getWritableDatabase();
+    SupportSQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
       log("UPDATE\n  table: %s\n  values: %s\n  whereClause: %s\n  whereArgs: %s\n  conflictAlgorithm: %s",
           table, values, whereClause, Arrays.toString(whereArgs),
           conflictString(conflictAlgorithm));
     }
-    int rows = db.updateWithOnConflict(table, values, whereClause, whereArgs, conflictAlgorithm);
+    int rows = db.update(table, conflictAlgorithm, values, whereClause, whereArgs);
 
     if (logging) log("UPDATE affected %s %s", rows, rows != 1 ? "rows" : "row");
 
@@ -596,18 +599,19 @@ public final class BriteDatabase implements Closeable {
    */
   @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
-  public int executeUpdateDelete(String table, SQLiteStatement statement) {
+  public int executeUpdateDelete(String table, SupportSQLiteStatement statement) {
     return executeUpdateDelete(Collections.singleton(table), statement);
   }
 
   /**
-   * See {@link #executeUpdateDelete(String, SQLiteStatement)} for usage. This overload allows for triggering multiple tables.
+   * See {@link #executeUpdateDelete(String, SupportSQLiteStatement)} for usage. This overload
+   * allows for triggering multiple tables.
    *
-   * @see BriteDatabase#executeUpdateDelete(String, SQLiteStatement)
+   * @see BriteDatabase#executeUpdateDelete(String, SupportSQLiteStatement)
    */
   @WorkerThread
   @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
-  public int executeUpdateDelete(Set<String> tables, SQLiteStatement statement) {
+  public int executeUpdateDelete(Set<String> tables, SupportSQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
     int rows = statement.executeUpdateDelete();
@@ -629,17 +633,18 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteStatement#executeInsert()
    */
   @WorkerThread
-  public long executeInsert(String table, SQLiteStatement statement) {
+  public long executeInsert(String table, SupportSQLiteStatement statement) {
     return executeInsert(Collections.singleton(table), statement);
   }
 
   /**
-   * See {@link #executeInsert(String, SQLiteStatement)} for usage. This overload allows for triggering multiple tables.
+   * See {@link #executeInsert(String, SupportSQLiteStatement)} for usage. This overload allows for
+   * triggering multiple tables.
    *
-   * @see BriteDatabase#executeInsert(String, SQLiteStatement)
+   * @see BriteDatabase#executeInsert(String, SupportSQLiteStatement)
    */
   @WorkerThread
-  public long executeInsert(Set<String> tables, SQLiteStatement statement) {
+  public long executeInsert(Set<String> tables, SupportSQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
     long rowId = statement.executeInsert();
@@ -778,9 +783,9 @@ public final class BriteDatabase implements Closeable {
   final class DatabaseQuery extends Query implements Function<Set<String>, Query> {
     private final Object tableFilter;
     private final String sql;
-    private final String[] args;
+    private final Object[] args;
 
-    DatabaseQuery(Object tableFilter, String sql, String... args) {
+    DatabaseQuery(Object tableFilter, String sql, Object[] args) {
       this.tableFilter = tableFilter;
       this.sql = sql;
       this.args = args;
@@ -792,7 +797,7 @@ public final class BriteDatabase implements Closeable {
       }
 
       long startNanos = nanoTime();
-      Cursor cursor = getReadableDatabase().rawQuery(sql, args);
+      Cursor cursor = getReadableDatabase().query(sql, args);
 
       if (logging) {
         long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
