@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
+import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -87,7 +88,7 @@ public final class SqlBrite {
   }
 
   /**
-   * Wrap a {@link SQLiteOpenHelper} for observable queries.
+   * Wrap a {@link SupportSQLiteOpenHelper} for observable queries.
    * <p>
    * While not strictly required, instances of this class assume that they will be the only ones
    * interacting with the underlying {@link SQLiteOpenHelper} and it is required for automatic
@@ -97,7 +98,8 @@ public final class SqlBrite {
    * @param scheduler The {@link Scheduler} on which items from {@link BriteDatabase#createQuery}
    * will be emitted.
    */
-  @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(@NonNull SQLiteOpenHelper helper,
+  @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(
+      @NonNull SupportSQLiteOpenHelper helper,
       @NonNull Scheduler scheduler) {
     PublishSubject<Set<String>> triggers = PublishSubject.create();
     return new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);

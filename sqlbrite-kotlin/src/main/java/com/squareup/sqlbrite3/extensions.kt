@@ -15,10 +15,10 @@
  */
 @file:Suppress("NOTHING_TO_INLINE") // Extensions provided for intentional convenience.
 
-package com.squareup.sqlbrite2
+package com.squareup.sqlbrite3
 
 import android.database.Cursor
-import com.squareup.sqlbrite2.SqlBrite.Query
+import com.squareup.sqlbrite3.SqlBrite.Query
 import io.reactivex.Observable
 import java.util.Optional
 

@@ -1,5 +1,4 @@
 include ':sqlbrite'
-include ':sqlbrite-interop'
 include ':sqlbrite-kotlin'
 include ':sample'
 

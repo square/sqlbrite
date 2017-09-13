@@ -32,7 +32,7 @@ import butterknife.ButterKnife;
 import butterknife.OnItemClick;
 import com.example.sqlbrite.todo.R;
 import com.example.sqlbrite.todo.TodoApp;
-import com.squareup.sqlbrite2.BriteDatabase;
+import com.squareup.sqlbrite3.BriteDatabase;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
 import javax.inject.Inject;

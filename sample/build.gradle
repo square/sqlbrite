@@ -1,15 +1,12 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-  // Android dependencies.
   compile rootProject.ext.supportV4
   compile rootProject.ext.supportAnnotations
 
-  // Dagger dependencies.
   compile rootProject.ext.dagger
   annotationProcessor rootProject.ext.daggerCompiler
 
-  // Third-party dependencies.
   compile rootProject.ext.butterKnifeRuntime
   annotationProcessor rootProject.ext.butterKnifeCompiler
   compile rootProject.ext.timber
@@ -21,8 +18,8 @@ dependencies {
   annotationProcessor rootProject.ext.autoValue
   annotationProcessor rootProject.ext.autoValueParcel
 
-  // In-repo dependencies.
   compile project(':sqlbrite')
+  compile rootProject.ext.supportSqliteFramework
 }
 
 def isCi() {

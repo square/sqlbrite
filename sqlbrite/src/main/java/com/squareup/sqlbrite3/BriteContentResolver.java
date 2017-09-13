@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.content.ContentResolver;
 import android.database.ContentObserver;
@@ -24,8 +24,8 @@ import android.os.Looper;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import com.squareup.sqlbrite2.SqlBrite.Logger;
-import com.squareup.sqlbrite2.SqlBrite.Query;
+import com.squareup.sqlbrite3.SqlBrite.Logger;
+import com.squareup.sqlbrite3.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.ObservableEmitter;
 import io.reactivex.ObservableOnSubscribe;
@@ -34,7 +34,7 @@ import io.reactivex.Scheduler;
 import io.reactivex.functions.Cancellable;
 import java.util.Arrays;
 
-import static com.squareup.sqlbrite2.QueryObservable.QUERY_OBSERVABLE;
+import static com.squareup.sqlbrite3.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 

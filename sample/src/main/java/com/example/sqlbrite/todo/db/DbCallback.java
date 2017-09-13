@@ -15,12 +15,16 @@
  */
 package com.example.sqlbrite.todo.db;
 
+import android.arch.persistence.db.SupportSQLiteDatabase;
+import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-final class DbOpenHelper extends SQLiteOpenHelper {
-  private static final int VERSION = 1;
+import static android.database.sqlite.SQLiteDatabase.CONFLICT_FAIL;
+
+final class DbCallback extends SupportSQLiteOpenHelper.Callback {
+  static final int VERSION = 1;
 
   private static final String CREATE_LIST = ""
       + "CREATE TABLE " + TodoList.TABLE + "("
@@ -38,78 +42,74 @@ final class DbOpenHelper extends SQLiteOpenHelper {
   private static final String CREATE_ITEM_LIST_ID_INDEX =
       "CREATE INDEX item_list_id ON " + TodoItem.TABLE + " (" + TodoItem.LIST_ID + ")";
 
-  public DbOpenHelper(Context context) {
-    super(context, "todo.db", null /* factory */, VERSION);
-  }
-
-  @Override public void onCreate(SQLiteDatabase db) {
+  @Override public void onCreate(SupportSQLiteDatabase db) {
     db.execSQL(CREATE_LIST);
     db.execSQL(CREATE_ITEM);
     db.execSQL(CREATE_ITEM_LIST_ID_INDEX);
 
-    long groceryListId = db.insert(TodoList.TABLE, null, new TodoList.Builder()
+    long groceryListId = db.insert(TodoList.TABLE, CONFLICT_FAIL, new TodoList.Builder()
         .name("Grocery List")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(groceryListId)
         .description("Beer")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(groceryListId)
         .description("Point Break on DVD")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(groceryListId)
         .description("Bad Boys 2 on DVD")
         .build());
 
-    long holidayPresentsListId = db.insert(TodoList.TABLE, null, new TodoList.Builder()
+    long holidayPresentsListId = db.insert(TodoList.TABLE, CONFLICT_FAIL, new TodoList.Builder()
         .name("Holiday Presents")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(holidayPresentsListId)
         .description("Pogo Stick for Jake W.")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(holidayPresentsListId)
         .description("Jack-in-the-box for Alec S.")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(holidayPresentsListId)
         .description("Pogs for Matt P.")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(holidayPresentsListId)
         .description("Cola for Jesse W.")
         .build());
 
-    long workListId = db.insert(TodoList.TABLE, null, new TodoList.Builder()
+    long workListId = db.insert(TodoList.TABLE, CONFLICT_FAIL, new TodoList.Builder()
         .name("Work Items")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(workListId)
         .description("Finish SqlBrite library")
         .complete(true)
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(workListId)
         .description("Finish SqlBrite sample app")
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder()
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder()
         .listId(workListId)
         .description("Publish SqlBrite to GitHub")
         .build());
 
-    long birthdayPresentsListId = db.insert(TodoList.TABLE, null, new TodoList.Builder()
+    long birthdayPresentsListId = db.insert(TodoList.TABLE, CONFLICT_FAIL, new TodoList.Builder()
         .name("Birthday Presents")
         .archived(true)
         .build());
-    db.insert(TodoItem.TABLE, null, new TodoItem.Builder().listId(birthdayPresentsListId)
+    db.insert(TodoItem.TABLE, CONFLICT_FAIL, new TodoItem.Builder().listId(birthdayPresentsListId)
         .description("New car")
         .complete(true)
         .build());
   }
 
-  @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+  @Override public void onUpgrade(SupportSQLiteDatabase db, int oldVersion, int newVersion) {
   }
 }

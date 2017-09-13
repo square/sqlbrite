@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.annotation.TargetApi;
+import android.arch.persistence.db.SupportSQLiteOpenHelper;
+import android.arch.persistence.db.SupportSQLiteOpenHelper.Configuration;
+import android.arch.persistence.db.SupportSQLiteOpenHelper.Factory;
+import android.arch.persistence.db.framework.FrameworkSQLiteOpenHelperFactory;
 import android.database.Cursor;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.SdkSuppress;
-import com.squareup.sqlbrite2.SqlBrite.Query;
-import com.squareup.sqlbrite2.TestDb.Employee;
+import com.squareup.sqlbrite3.SqlBrite.Query;
+import com.squareup.sqlbrite3.TestDb.Employee;
 import io.reactivex.Observable;
 import io.reactivex.functions.Function;
 import io.reactivex.observers.TestObserver;
@@ -33,17 +37,24 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.squareup.sqlbrite2.TestDb.Employee.MAPPER;
-import static com.squareup.sqlbrite2.TestDb.SELECT_EMPLOYEES;
-import static com.squareup.sqlbrite2.TestDb.TABLE_EMPLOYEE;
+import static com.squareup.sqlbrite3.TestDb.Employee.MAPPER;
+import static com.squareup.sqlbrite3.TestDb.SELECT_EMPLOYEES;
+import static com.squareup.sqlbrite3.TestDb.TABLE_EMPLOYEE;
 import static org.junit.Assert.fail;
 
 public final class QueryTest {
   private BriteDatabase db;
 
   @Before public void setUp() {
+    Configuration configuration = Configuration.builder(InstrumentationRegistry.getContext())
+        .callback(new TestDb())
+        .version(1)
+        .build();
+
+    Factory factory = new FrameworkSQLiteOpenHelperFactory();
+    SupportSQLiteOpenHelper helper = factory.create(configuration);
+
     SqlBrite sqlBrite = new SqlBrite.Builder().build();
-    TestDb helper = new TestDb(InstrumentationRegistry.getContext(), null /* memory */);
     db = sqlBrite.wrapDatabaseHelper(helper, Schedulers.trampoline());
   }
 
@@ -204,7 +215,6 @@ public final class QueryTest {
     subscriber.assertComplete();
   }
 
-  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
   @Test public void mapToOptional() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
@@ -213,7 +223,6 @@ public final class QueryTest {
         .assertValue(Optional.of(new Employee("alice", "Alice Allison")));
   }
 
-  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
   @Test public void mapToOptionalThrowsWhenMapperReturnsNull() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 1")
@@ -227,7 +236,6 @@ public final class QueryTest {
         .assertErrorMessage("QueryToOne mapper returned null");
   }
 
-  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
   @Test public void mapToOptionalThrowsOnMultipleRows() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES + " LIMIT 2") //
@@ -236,7 +244,7 @@ public final class QueryTest {
         .assertError(IllegalStateException.class)
         .assertErrorMessage("Cursor returned more than 1 row");
   }
-  @TargetApi(Build.VERSION_CODES.N) // TODO remove after upgrading Android Gradle plugin to 2.3+
+
   @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
   @Test public void mapToOptionalIgnoresNullCursor() {
     Query nully = new Query() {

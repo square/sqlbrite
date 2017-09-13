@@ -13,40 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.squareup.sqlbrite2;
+package com.squareup.sqlbrite3;
 
 import android.database.Cursor;
-import android.support.annotation.Nullable;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import io.reactivex.ObservableOperator;
 import io.reactivex.Observer;
 import io.reactivex.exceptions.Exceptions;
 import io.reactivex.functions.Function;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.plugins.RxJavaPlugins;
+import java.util.Optional;
 
-final class QueryToOneOperator<T> implements ObservableOperator<T, SqlBrite.Query> {
+@RequiresApi(Build.VERSION_CODES.N)
+final class QueryToOptionalOperator<T> implements ObservableOperator<Optional<T>, SqlBrite.Query> {
   private final Function<Cursor, T> mapper;
-  private final T defaultValue;
 
-  /** A null {@code defaultValue} means nothing will be emitted when empty. */
-  QueryToOneOperator(Function<Cursor, T> mapper, @Nullable T defaultValue) {
+  QueryToOptionalOperator(Function<Cursor, T> mapper) {
     this.mapper = mapper;
-    this.defaultValue = defaultValue;
   }
 
-  @Override public Observer<? super SqlBrite.Query> apply(Observer<? super T> observer) {
-    return new MappingObserver<>(observer, mapper, defaultValue);
+  @Override public Observer<? super SqlBrite.Query> apply(Observer<? super Optional<T>> observer) {
+    return new MappingObserver<>(observer, mapper);
   }
 
   static final class MappingObserver<T> extends DisposableObserver<SqlBrite.Query> {
-    private final Observer<? super T> downstream;
+    private final Observer<? super Optional<T>> downstream;
     private final Function<Cursor, T> mapper;
-    private final T defaultValue;
 
-    MappingObserver(Observer<? super T> downstream, Function<Cursor, T> mapper, T defaultValue) {
+    MappingObserver(Observer<? super Optional<T>> downstream, Function<Cursor, T> mapper) {
       this.downstream = downstream;
       this.mapper = mapper;
-      this.defaultValue = defaultValue;
     }
 
     @Override protected void onStart() {
@@ -74,11 +72,7 @@ final class QueryToOneOperator<T> implements ObservableOperator<T, SqlBrite.Quer
           }
         }
         if (!isDisposed()) {
-          if (item != null) {
-            downstream.onNext(item);
-          } else if (defaultValue != null) {
-            downstream.onNext(defaultValue);
-          }
+          downstream.onNext(Optional.ofNullable(item));
         }
       } catch (Throwable e) {
         Exceptions.throwIfFatal(e);
