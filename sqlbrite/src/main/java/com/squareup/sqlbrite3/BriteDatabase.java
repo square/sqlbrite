@@ -15,8 +15,10 @@
  */
 package com.squareup.sqlbrite3;
 
+import android.arch.persistence.db.SimpleSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteDatabase;
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
+import android.arch.persistence.db.SupportSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteStatement;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -58,6 +60,7 @@ import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static com.squareup.sqlbrite3.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
+import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
@@ -323,60 +326,76 @@ public final class BriteDatabase implements Closeable {
    * <b>Warning:</b> this method does not perform the query! Only by subscribing to the returned
    * {@link Observable} will the operation occur.
    *
-   * @see SQLiteDatabase#rawQuery(String, String[])
+   * @see SupportSQLiteDatabase#query(String, Object[])
    */
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final String table, @NonNull String sql,
       @NonNull Object... args) {
-    Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
-      @Override public boolean test(Set<String> triggers) {
-        return triggers.contains(table);
-      }
-
-      @Override public String toString() {
-        return table;
-      }
-    };
-    return createQuery(tableFilter, sql, args);
+    return createQuery(new DatabaseQuery(singletonList(table), new SimpleSQLiteQuery(sql, args)));
   }
 
   /**
    * See {@link #createQuery(String, String, Object...)} for usage. This overload allows for
    * monitoring multiple tables for changes.
    *
-   * @see SQLiteDatabase#rawQuery(String, String[])
+   * @see SupportSQLiteDatabase#query(String, Object[])
    */
   @CheckResult @NonNull
   public QueryObservable createQuery(@NonNull final Iterable<String> tables, @NonNull String sql,
       @NonNull Object... args) {
-    Predicate<Set<String>> tableFilter = new Predicate<Set<String>>() {
-      @Override public boolean test(Set<String> triggers) {
-        for (String table : tables) {
-          if (triggers.contains(table)) {
-            return true;
-          }
-        }
-        return false;
-      }
+    return createQuery(new DatabaseQuery(tables, new SimpleSQLiteQuery(sql, args)));
+  }
 
-      @Override public String toString() {
-        return tables.toString();
-      }
-    };
-    return createQuery(tableFilter, sql, args);
+  /**
+   * Create an observable which will notify subscribers with a {@linkplain Query query} for
+   * execution. Subscribers are responsible for <b>always</b> closing {@link Cursor} instance
+   * returned from the {@link Query}.
+   * <p>
+   * Subscribers will receive an immediate notification for initial data as well as subsequent
+   * notifications for when the supplied {@code table}'s data changes through the {@code insert},
+   * {@code update}, and {@code delete} methods of this class. Unsubscribe when you no longer want
+   * updates to a query.
+   * <p>
+   * Since database triggers are inherently asynchronous, items emitted from the returned
+   * observable use the {@link Scheduler} supplied to {@link SqlBrite#wrapDatabaseHelper}. For
+   * consistency, the immediate notification sent on subscribe also uses this scheduler. As such,
+   * calling {@link Observable#subscribeOn subscribeOn} on the returned observable has no effect.
+   * <p>
+   * Note: To skip the immediate notification and only receive subsequent notifications when data
+   * has changed call {@code skip(1)} on the returned observable.
+   * <p>
+   * <b>Warning:</b> this method does not perform the query! Only by subscribing to the returned
+   * {@link Observable} will the operation occur.
+   *
+   * @see SupportSQLiteDatabase#query(SupportSQLiteQuery)
+   */
+  @CheckResult @NonNull
+  public QueryObservable createQuery(@NonNull final String table,
+      @NonNull SupportSQLiteQuery query) {
+    return createQuery(new DatabaseQuery(singletonList(table), query));
+  }
+
+  /**
+   * See {@link #createQuery(String, SupportSQLiteQuery)} for usage. This overload allows for
+   * monitoring multiple tables for changes.
+   *
+   * @see SupportSQLiteDatabase#query(SupportSQLiteQuery)
+   */
+  @CheckResult @NonNull
+  public QueryObservable createQuery(@NonNull final Iterable<String> tables,
+      @NonNull SupportSQLiteQuery query) {
+    return createQuery(new DatabaseQuery(tables, query));
   }
 
   @CheckResult @NonNull
-  private QueryObservable createQuery(Predicate<Set<String>> tableFilter, String sql,
-      Object... args) {
+  private QueryObservable createQuery(DatabaseQuery query) {
     if (transactions.get() != null) {
       throw new IllegalStateException("Cannot create observable query in transaction. "
           + "Use query() for a query inside a transaction.");
     }
 
-    DatabaseQuery query = new DatabaseQuery(tableFilter, sql, args);
     return triggerSource //
-        .filter(tableFilter) // Only trigger on tables we care about.
+        .filter(query) // DatabaseQuery filters triggers to on tables we care about.
         .map(query) // DatabaseQuery maps to itself to save an allocation.
         .startWith(query) //
         .observeOn(scheduler) //
@@ -780,15 +799,14 @@ public final class BriteDatabase implements Closeable {
     }
   }
 
-  final class DatabaseQuery extends Query implements Function<Set<String>, Query> {
-    private final Object tableFilter;
-    private final String sql;
-    private final Object[] args;
+  final class DatabaseQuery extends Query
+      implements Function<Set<String>, Query>, Predicate<Set<String>> {
+    private final Iterable<String> tables;
+    private final SupportSQLiteQuery query;
 
-    DatabaseQuery(Object tableFilter, String sql, Object[] args) {
-      this.tableFilter = tableFilter;
-      this.sql = sql;
-      this.args = args;
+    DatabaseQuery(Iterable<String> tables, SupportSQLiteQuery query) {
+      this.tables = tables;
+      this.query = query;
     }
 
     @Override public Cursor run() {
@@ -797,23 +815,32 @@ public final class BriteDatabase implements Closeable {
       }
 
       long startNanos = nanoTime();
-      Cursor cursor = getReadableDatabase().query(sql, args);
+      Cursor cursor = getReadableDatabase().query(query);
 
       if (logging) {
         long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
-        log("QUERY (%sms)\n  tables: %s\n  sql: %s\n  args: %s", tookMillis, tableFilter,
-            indentSql(sql), Arrays.toString(args));
+        log("QUERY (%sms)\n  tables: %s\n  sql: %s", tookMillis, tables,
+            indentSql(query.getSql()));
       }
 
       return cursor;
     }
 
     @Override public String toString() {
-      return sql;
+      return query.getSql();
     }
 
     @Override public Query apply(Set<String> ignored) {
       return this;
+    }
+
+    @Override public boolean test(Set<String> strings) {
+      for (String table : tables) {
+        if (strings.contains(table)) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }
