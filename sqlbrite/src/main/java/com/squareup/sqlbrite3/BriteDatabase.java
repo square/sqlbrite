@@ -23,7 +23,6 @@ import android.arch.persistence.db.SupportSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteStatement;
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteTransactionListener;
 import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
@@ -580,7 +579,7 @@ public final class BriteDatabase implements Closeable {
    * @return the number of rows affected by this SQL statement execution.
    * @throws android.database.SQLException If the SQL string is invalid
    *
-   * @see SQLiteStatement#executeUpdateDelete()
+   * @see SupportSQLiteStatement#executeUpdateDelete()
    */
   @WorkerThread
   public int executeUpdateDelete(String table, SupportSQLiteStatement statement) {
@@ -613,7 +612,7 @@ public final class BriteDatabase implements Closeable {
    *
    * @throws android.database.SQLException If the SQL string is invalid
    *
-   * @see SQLiteStatement#executeInsert()
+   * @see SupportSQLiteStatement#executeInsert()
    */
   @WorkerThread
   public long executeInsert(String table, SupportSQLiteStatement statement) {
