@@ -16,6 +16,7 @@
 package com.squareup.sqlbrite3;
 
 import android.annotation.TargetApi;
+import android.arch.persistence.db.SimpleSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteDatabase;
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.arch.persistence.db.SupportSQLiteOpenHelper.Configuration;
@@ -132,6 +133,15 @@ public final class BriteDatabaseTest {
 
   @Test public void query() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
+    o.assertCursor()
+        .hasRow("alice", "Alice Allison")
+        .hasRow("bob", "Bob Bobberson")
+        .hasRow("eve", "Eve Evenson")
+        .isExhausted();
+  }
+
+  @Test public void queryWithQueryObject() {
+    db.createQuery(TABLE_EMPLOYEE, new SimpleSQLiteQuery(SELECT_EMPLOYEES)).subscribe(o);
     o.assertCursor()
         .hasRow("alice", "Alice Allison")
         .hasRow("bob", "Bob Bobberson")
@@ -307,6 +317,13 @@ public final class BriteDatabaseTest {
 
   @Test public void queryMultipleTables() {
     db.createQuery(BOTH_TABLES, SELECT_MANAGER_LIST).subscribe(o);
+    o.assertCursor()
+        .hasRow("Eve Evenson", "Alice Allison")
+        .isExhausted();
+  }
+
+  @Test public void queryMultipleTablesWithQueryObject() {
+    db.createQuery(BOTH_TABLES, new SimpleSQLiteQuery(SELECT_MANAGER_LIST)).subscribe(o);
     o.assertCursor()
         .hasRow("Eve Evenson", "Alice Allison")
         .isExhausted();
