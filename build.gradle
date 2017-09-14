@@ -59,7 +59,7 @@ configurations {
 dependencies {
   osstrich 'com.squareup.osstrich:osstrich:1.2.0'
 }
-task publishJavadoc(type: JavaExec) {
+task publishV1Javadoc(type: JavaExec) {
   classpath = configurations.osstrich
   main = 'com.squareup.osstrich.JavadocPublisher'
   args = [
@@ -68,3 +68,13 @@ task publishJavadoc(type: JavaExec) {
       'com.squareup.sqlbrite'
   ]
 }
+task publishV2Javadoc(type: JavaExec) {
+  classpath = configurations.osstrich
+  main = 'com.squareup.osstrich.JavadocPublisher'
+  args = [
+      'build/javadoc',
+      'https://github.com/square/sqlbrite',
+      'com.squareup.sqlbrite2'
+  ]
+}
+task publishJavadoc(dependsOn: [publishV1Javadoc, publishV2Javadoc])
