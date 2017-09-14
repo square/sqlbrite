@@ -38,6 +38,7 @@ import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.PublishSubject;
 import javax.inject.Inject;
 
+import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static butterknife.ButterKnife.findById;
 
 public final class NewListFragment extends DialogFragment {
@@ -68,7 +69,7 @@ public final class NewListFragment extends DialogFragment {
         .observeOn(Schedulers.io())
         .subscribe(new Consumer<String>() {
           @Override public void accept(String name) {
-            db.insert(TodoList.TABLE, new TodoList.Builder().name(name).build());
+            db.insert(TodoList.TABLE, CONFLICT_NONE, new TodoList.Builder().name(name).build());
           }
         });
 

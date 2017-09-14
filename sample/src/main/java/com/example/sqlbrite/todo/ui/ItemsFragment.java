@@ -47,6 +47,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import javax.inject.Inject;
 
+import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
 import static android.support.v4.view.MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 import static com.squareup.sqlbrite3.SqlBrite.Query;
@@ -141,8 +142,9 @@ public final class ItemsFragment extends Fragment {
         .subscribe(new Consumer<AdapterViewItemClickEvent>() {
           @Override public void accept(AdapterViewItemClickEvent event) {
             boolean newValue = !adapter.getItem(event.position()).complete();
-            db.update(TodoItem.TABLE, new TodoItem.Builder().complete(newValue).build(),
-                TodoItem.ID + " = ?", String.valueOf(event.id()));
+            db.update(TodoItem.TABLE, CONFLICT_NONE,
+                new TodoItem.Builder().complete(newValue).build(), TodoItem.ID + " = ?",
+                String.valueOf(event.id()));
           }
         });
   }

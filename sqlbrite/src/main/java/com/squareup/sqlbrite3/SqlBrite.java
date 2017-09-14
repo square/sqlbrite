@@ -18,7 +18,6 @@ package com.squareup.sqlbrite3;
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.content.ContentResolver;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
@@ -33,14 +32,12 @@ import io.reactivex.ObservableOperator;
 import io.reactivex.ObservableTransformer;
 import io.reactivex.Scheduler;
 import io.reactivex.functions.Function;
-import io.reactivex.subjects.PublishSubject;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 /**
- * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
- * the result of a query.
+ * A lightweight wrapper around {@link SupportSQLiteOpenHelper} which allows for continuously
+ * observing the result of a query.
  */
 public final class SqlBrite {
   static final Logger DEFAULT_LOGGER = new Logger() {
@@ -91,8 +88,8 @@ public final class SqlBrite {
    * Wrap a {@link SupportSQLiteOpenHelper} for observable queries.
    * <p>
    * While not strictly required, instances of this class assume that they will be the only ones
-   * interacting with the underlying {@link SQLiteOpenHelper} and it is required for automatic
-   * notifications of table changes to work. See {@linkplain BriteDatabase#createQuery the
+   * interacting with the underlying {@link SupportSQLiteOpenHelper} and it is required for
+   * automatic notifications of table changes to work. See {@linkplain BriteDatabase#createQuery the
    * <code>query</code> method} for more information on that behavior.
    *
    * @param scheduler The {@link Scheduler} on which items from {@link BriteDatabase#createQuery}
@@ -101,8 +98,7 @@ public final class SqlBrite {
   @CheckResult @NonNull public BriteDatabase wrapDatabaseHelper(
       @NonNull SupportSQLiteOpenHelper helper,
       @NonNull Scheduler scheduler) {
-    PublishSubject<Set<String>> triggers = PublishSubject.create();
-    return new BriteDatabase(helper, logger, triggers, triggers, scheduler, queryTransformer);
+    return new BriteDatabase(helper, logger, scheduler, queryTransformer);
   }
 
   /**

@@ -18,30 +18,28 @@ package com.squareup.sqlbrite3;
 import android.arch.persistence.db.SimpleSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteDatabase;
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
+import android.arch.persistence.db.SupportSQLiteOpenHelper.Callback;
 import android.arch.persistence.db.SupportSQLiteQuery;
 import android.arch.persistence.db.SupportSQLiteStatement;
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 import android.database.sqlite.SQLiteTransactionListener;
-import android.os.Build;
 import android.support.annotation.CheckResult;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
 import android.support.annotation.WorkerThread;
 import com.squareup.sqlbrite3.SqlBrite.Logger;
 import com.squareup.sqlbrite3.SqlBrite.Query;
 import io.reactivex.Observable;
 import io.reactivex.ObservableTransformer;
-import io.reactivex.Observer;
 import io.reactivex.Scheduler;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import java.io.Closeable;
 import java.lang.annotation.Retention;
 import java.util.Arrays;
@@ -56,7 +54,6 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_IGNORE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ROLLBACK;
-import static android.os.Build.VERSION_CODES.HONEYCOMB;
 import static com.squareup.sqlbrite3.QueryObservable.QUERY_OBSERVABLE;
 import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
@@ -64,8 +61,8 @@ import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
- * A lightweight wrapper around {@link SQLiteOpenHelper} which allows for continuously observing
- * the result of a query. Create using a {@link SqlBrite} instance.
+ * A lightweight wrapper around {@link SupportSQLiteOpenHelper} which allows for continuously
+ * observing the result of a query. Create using a {@link SqlBrite} instance.
  */
 public final class BriteDatabase implements Closeable {
   private final SupportSQLiteOpenHelper helper;
@@ -74,10 +71,7 @@ public final class BriteDatabase implements Closeable {
 
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   final ThreadLocal<SqliteTransaction> transactions = new ThreadLocal<>();
-  /** Publishes the tables which have changed. */
-  private final Observable<Set<String>> triggerSource;
-  /** Consumes the tables which have changed. Eventually propagated to {@link #triggerSource}. */
-  private final Observer<Set<String>> triggerSink;
+  private final Subject<Set<String>> triggers = PublishSubject.create();
 
   private final Transaction transaction = new Transaction() {
     @Override public void markSuccessful() {
@@ -125,13 +119,10 @@ public final class BriteDatabase implements Closeable {
   // Package-private to avoid synthetic accessor method for 'transaction' instance.
   volatile boolean logging;
 
-  BriteDatabase(SupportSQLiteOpenHelper helper, Logger logger, Observable<Set<String>> triggerSource,
-      Observer<Set<String>> triggerSink, Scheduler scheduler,
+  BriteDatabase(SupportSQLiteOpenHelper helper, Logger logger, Scheduler scheduler,
       ObservableTransformer<Query, Query> queryTransformer) {
     this.helper = helper;
     this.logger = logger;
-    this.triggerSource = triggerSource;
-    this.triggerSink = triggerSink;
     this.scheduler = scheduler;
     this.queryTransformer = queryTransformer;
   }
@@ -145,20 +136,20 @@ public final class BriteDatabase implements Closeable {
 
   /**
    * Create and/or open a database.  This will be the same object returned by
-   * {@link SQLiteOpenHelper#getWritableDatabase} unless some problem, such as a full disk,
+   * {@link SupportSQLiteOpenHelper#getWritableDatabase} unless some problem, such as a full disk,
    * requires the database to be opened read-only.  In that case, a read-only
    * database object will be returned.  If the problem is fixed, a future call
-   * to {@link SQLiteOpenHelper#getWritableDatabase} may succeed, in which case the read-only
+   * to {@link SupportSQLiteOpenHelper#getWritableDatabase} may succeed, in which case the read-only
    * database object will be closed and the read/write object will be returned
    * in the future.
    *
-   * <p class="caution">Like {@link SQLiteOpenHelper#getWritableDatabase}, this method may
+   * <p class="caution">Like {@link SupportSQLiteOpenHelper#getWritableDatabase}, this method may
    * take a long time to return, so you should not call it from the
    * application main thread, including from
    * {@link android.content.ContentProvider#onCreate ContentProvider.onCreate()}.
    *
    * @throws android.database.sqlite.SQLiteException if the database cannot be opened
-   * @return a database object valid until {@link SQLiteOpenHelper#getWritableDatabase}
+   * @return a database object valid until {@link SupportSQLiteOpenHelper#getWritableDatabase}
    *     or {@link #close} is called.
    */
   @NonNull @CheckResult @WorkerThread
@@ -166,12 +157,11 @@ public final class BriteDatabase implements Closeable {
     return helper.getReadableDatabase();
   }
 
-
   /**
    * Create and/or open a database that will be used for reading and writing.
    * The first time this is called, the database will be opened and
-   * {@link SQLiteOpenHelper#onCreate}, {@link SQLiteOpenHelper#onUpgrade}
-   * and/or {@link SQLiteOpenHelper#onOpen} will be called.
+   * {@link Callback#onCreate}, {@link Callback#onUpgrade} and/or {@link Callback#onOpen} will be
+   * called.
    *
    * <p>Once opened successfully, the database is cached, so you can
    * call this method every time you need to write to the database.
@@ -197,7 +187,7 @@ public final class BriteDatabase implements Closeable {
       transaction.addAll(tables);
     } else {
       if (logging) log("TRIGGER %s", tables);
-      triggerSink.onNext(tables);
+      triggers.onNext(tables);
     }
   }
 
@@ -236,7 +226,7 @@ public final class BriteDatabase implements Closeable {
    * }</pre>
    *
    *
-   * @see SQLiteDatabase#beginTransaction()
+   * @see SupportSQLiteDatabase#beginTransaction()
    */
   @CheckResult @NonNull
   public Transaction newTransaction() {
@@ -283,9 +273,8 @@ public final class BriteDatabase implements Closeable {
    * }</pre>
    *
    *
-   * @see SQLiteDatabase#beginTransactionNonExclusive()
+   * @see SupportSQLiteDatabase#beginTransactionNonExclusive()
    */
-  @RequiresApi(HONEYCOMB)
   @CheckResult @NonNull
   public Transaction newNonExclusiveTransaction() {
     SqliteTransaction transaction = new SqliteTransaction(transactions.get());
@@ -297,7 +286,7 @@ public final class BriteDatabase implements Closeable {
   }
 
   /**
-   * Close the underlying {@link SQLiteOpenHelper} and remove cached readable and writeable
+   * Close the underlying {@link SupportSQLiteOpenHelper} and remove cached readable and writeable
    * databases. This does not prevent existing observables from retaining existing references as
    * well as attempting to create new ones for new subscriptions.
    */
@@ -394,7 +383,7 @@ public final class BriteDatabase implements Closeable {
           + "Use query() for a query inside a transaction.");
     }
 
-    return triggerSource //
+    return triggers //
         .filter(query) // DatabaseQuery filters triggers to on tables we care about.
         .map(query) // DatabaseQuery maps to itself to save an allocation.
         .startWith(query) //
@@ -425,21 +414,11 @@ public final class BriteDatabase implements Closeable {
   /**
    * Insert a row into the specified {@code table} and notify any subscribed queries.
    *
-   * @see SQLiteDatabase#insert(String, String, ContentValues)
+   * @see SupportSQLiteDatabase#insert(String, int, ContentValues)
    */
   @WorkerThread
-  public long insert(@NonNull String table, @NonNull ContentValues values) {
-    return insert(table, values, CONFLICT_NONE);
-  }
-
-  /**
-   * Insert a row into the specified {@code table} and notify any subscribed queries.
-   *
-   * @see SQLiteDatabase#insertWithOnConflict(String, String, ContentValues, int)
-   */
-  @WorkerThread
-  public long insert(@NonNull String table, @NonNull ContentValues values,
-      @ConflictAlgorithm int conflictAlgorithm) {
+  public long insert(@NonNull String table, @ConflictAlgorithm int conflictAlgorithm,
+      @NonNull ContentValues values) {
     SupportSQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
@@ -490,21 +469,8 @@ public final class BriteDatabase implements Closeable {
    * @see SupportSQLiteDatabase#update(String, int, ContentValues, String, Object[])
    */
   @WorkerThread
-  public int update(@NonNull String table, @NonNull ContentValues values,
-      @Nullable String whereClause, @Nullable String... whereArgs) {
-    return update(table, values, CONFLICT_NONE, whereClause, whereArgs);
-  }
-
-  /**
-   * Update rows in the specified {@code table} and notify any subscribed queries. This method
-   * will not trigger a notification if no rows were updated.
-   *
-   * @see SupportSQLiteDatabase#update(String, int, ContentValues, String, Object[])
-   */
-  @WorkerThread
-  public int update(@NonNull String table, @NonNull ContentValues values,
-      @ConflictAlgorithm int conflictAlgorithm, @Nullable String whereClause,
-      @Nullable String... whereArgs) {
+  public int update(@NonNull String table, @ConflictAlgorithm int conflictAlgorithm,
+      @NonNull ContentValues values, @Nullable String whereClause, @Nullable String... whereArgs) {
     SupportSQLiteDatabase db = getWritableDatabase();
 
     if (logging) {
@@ -530,7 +496,7 @@ public final class BriteDatabase implements Closeable {
    * <p>
    * No notifications will be sent to queries if {@code sql} affects the data of a table.
    *
-   * @see SQLiteDatabase#execSQL(String)
+   * @see SupportSQLiteDatabase#execSQL(String)
    */
   @WorkerThread
   public void execute(String sql) {
@@ -546,7 +512,7 @@ public final class BriteDatabase implements Closeable {
    * <p>
    * No notifications will be sent to queries if {@code sql} affects the data of a table.
    *
-   * @see SQLiteDatabase#execSQL(String, Object[])
+   * @see SupportSQLiteDatabase#execSQL(String, Object[])
    */
   @WorkerThread
   public void execute(String sql, Object... args) {
@@ -562,7 +528,7 @@ public final class BriteDatabase implements Closeable {
    * <p>
    * A notification to queries for {@code table} will be sent after the statement is executed.
    *
-   * @see SQLiteDatabase#execSQL(String)
+   * @see SupportSQLiteDatabase#execSQL(String)
    */
   @WorkerThread
   public void executeAndTrigger(String table, String sql) {
@@ -588,7 +554,7 @@ public final class BriteDatabase implements Closeable {
    * <p>
    * A notification to queries for {@code table} will be sent after the statement is executed.
    *
-   * @see SQLiteDatabase#execSQL(String, Object[])
+   * @see SupportSQLiteDatabase#execSQL(String, Object[])
    */
   @WorkerThread
   public void executeAndTrigger(String table, String sql, Object... args) {
@@ -617,7 +583,6 @@ public final class BriteDatabase implements Closeable {
    * @see SQLiteStatement#executeUpdateDelete()
    */
   @WorkerThread
-  @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(String table, SupportSQLiteStatement statement) {
     return executeUpdateDelete(Collections.singleton(table), statement);
   }
@@ -629,7 +594,6 @@ public final class BriteDatabase implements Closeable {
    * @see BriteDatabase#executeUpdateDelete(String, SupportSQLiteStatement)
    */
   @WorkerThread
-  @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
   public int executeUpdateDelete(Set<String> tables, SupportSQLiteStatement statement) {
     if (logging) log("EXECUTE\n %s", statement);
 
@@ -680,7 +644,7 @@ public final class BriteDatabase implements Closeable {
      * End a transaction. See {@link #newTransaction()} for notes about how to use this and when
      * transactions are committed and rolled back.
      *
-     * @see SQLiteDatabase#endTransaction()
+     * @see SupportSQLiteDatabase#endTransaction()
      */
     @WorkerThread
     void end();
@@ -691,7 +655,7 @@ public final class BriteDatabase implements Closeable {
      * situation too. If any errors are encountered between this and {@link #end()} the transaction
      * will still be committed.
      *
-     * @see SQLiteDatabase#setTransactionSuccessful()
+     * @see SupportSQLiteDatabase#setTransactionSuccessful()
      */
     @WorkerThread
     void markSuccessful();
@@ -705,7 +669,7 @@ public final class BriteDatabase implements Closeable {
      *
      * @return true if the transaction was yielded
      *
-     * @see SQLiteDatabase#yieldIfContendedSafely()
+     * @see SupportSQLiteDatabase#yieldIfContendedSafely()
      */
     @WorkerThread
     boolean yieldIfContendedSafely();
@@ -722,7 +686,7 @@ public final class BriteDatabase implements Closeable {
      *   more progress than they would if we started the transaction immediately.
      * @return true if the transaction was yielded
      *
-     * @see SQLiteDatabase#yieldIfContendedSafely(long)
+     * @see SupportSQLiteDatabase#yieldIfContendedSafely(long)
      */
     @WorkerThread
     boolean yieldIfContendedSafely(long sleepAmount, TimeUnit sleepUnit);
@@ -743,7 +707,7 @@ public final class BriteDatabase implements Closeable {
       CONFLICT_ROLLBACK
   })
   @Retention(SOURCE)
-  public @interface ConflictAlgorithm {
+  private @interface ConflictAlgorithm {
   }
 
   static String indentSql(String sql) {
