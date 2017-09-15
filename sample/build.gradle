@@ -1,29 +1,25 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-  compile rootProject.ext.supportV4
-  compile rootProject.ext.supportAnnotations
+  implementation rootProject.ext.supportV4
+  implementation rootProject.ext.supportAnnotations
 
-  compile rootProject.ext.dagger
+  implementation rootProject.ext.dagger
   annotationProcessor rootProject.ext.daggerCompiler
 
-  compile rootProject.ext.butterKnifeRuntime
+  implementation rootProject.ext.butterKnifeRuntime
   annotationProcessor rootProject.ext.butterKnifeCompiler
-  compile rootProject.ext.timber
-  compile rootProject.ext.rxJava
-  compile rootProject.ext.rxAndroid
-  compile rootProject.ext.rxBinding
+  implementation rootProject.ext.timber
+  implementation rootProject.ext.rxJava
+  implementation rootProject.ext.rxAndroid
+  implementation rootProject.ext.rxBinding
 
-  provided rootProject.ext.autoValue
+  compileOnly rootProject.ext.autoValue
   annotationProcessor rootProject.ext.autoValue
   annotationProcessor rootProject.ext.autoValueParcel
 
-  compile project(':sqlbrite')
-  compile rootProject.ext.supportSqliteFramework
-}
-
-def isCi() {
-  return "true".equals(System.getenv('CI'))
+  implementation project(':sqlbrite')
+  implementation rootProject.ext.supportSqliteFramework
 }
 
 android {
@@ -39,10 +35,6 @@ android {
     textOutput 'stdout'
     textReport true
     ignore 'InvalidPackage' // Provided AutoValue pulls in Guava and friends. Doesn't end up in APK.
-  }
-
-  dexOptions {
-    preDexLibraries = !isCi()
   }
 
   defaultConfig {

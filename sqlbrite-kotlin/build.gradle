@@ -2,12 +2,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'org.jetbrains.kotlin.android'
 
 dependencies {
-  compile project(':sqlbrite')
-  compile rootProject.ext.kotlinStdLib
-}
-
-def isCi() {
-  return "true".equals(System.getenv('CI'))
+  api project(':sqlbrite')
+  api rootProject.ext.kotlinStdLib
 }
 
 android {
@@ -21,10 +17,6 @@ android {
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_7
     targetCompatibility JavaVersion.VERSION_1_7
-  }
-
-  dexOptions {
-    preDexLibraries = !isCi()
   }
 
   lintOptions {
