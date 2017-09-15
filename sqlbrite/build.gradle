@@ -1,13 +1,13 @@
 apply plugin: 'com.android.library'
 
 dependencies {
-  compile rootProject.ext.rxJava
-  compile rootProject.ext.supportAnnotations
-  compile rootProject.ext.supportSqlite
+  api rootProject.ext.rxJava
+  api rootProject.ext.supportSqlite
+  implementation rootProject.ext.supportAnnotations
 
-  androidTestCompile rootProject.ext.supportTestRunner
-  androidTestCompile rootProject.ext.truth
-  androidTestCompile rootProject.ext.supportSqliteFramework
+  androidTestImplementation rootProject.ext.supportTestRunner
+  androidTestImplementation rootProject.ext.truth
+  androidTestImplementation rootProject.ext.supportSqliteFramework
 }
 
 def isCi() {

@@ -2,8 +2,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'org.jetbrains.kotlin.android'
 
 dependencies {
-  compile project(':sqlbrite')
-  compile rootProject.ext.kotlinStdLib
+  api project(':sqlbrite')
+  api rootProject.ext.kotlinStdLib
 }
 
 def isCi() {
