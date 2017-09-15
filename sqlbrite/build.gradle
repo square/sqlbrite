@@ -10,10 +10,6 @@ dependencies {
   androidTestImplementation rootProject.ext.supportSqliteFramework
 }
 
-def isCi() {
-  return "true".equals(System.getenv('CI'))
-}
-
 android {
   compileSdkVersion versions.compileSdk
   buildToolsVersion versions.buildTools
@@ -29,17 +25,9 @@ android {
     targetCompatibility JavaVersion.VERSION_1_7
   }
 
-  dexOptions {
-    preDexLibraries = !isCi()
-  }
-
   lintOptions {
     textOutput 'stdout'
     textReport true
-  }
-
-  packagingOptions {
-    exclude 'LICENSE.txt'
   }
 }
 

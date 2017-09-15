@@ -22,10 +22,6 @@ dependencies {
   implementation rootProject.ext.supportSqliteFramework
 }
 
-def isCi() {
-  return "true".equals(System.getenv('CI'))
-}
-
 android {
   compileSdkVersion versions.compileSdk
   buildToolsVersion versions.buildTools
@@ -39,10 +35,6 @@ android {
     textOutput 'stdout'
     textReport true
     ignore 'InvalidPackage' // Provided AutoValue pulls in Guava and friends. Doesn't end up in APK.
-  }
-
-  dexOptions {
-    preDexLibraries = !isCi()
   }
 
   defaultConfig {
