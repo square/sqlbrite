@@ -64,7 +64,7 @@ public abstract class TodoItem implements Parcelable {
     }
 
     public Builder complete(boolean complete) {
-      values.put(COMPLETE, complete);
+      values.put(COMPLETE, complete ? Db.BOOLEAN_TRUE : Db.BOOLEAN_FALSE);
       return this;
     }
 
