@@ -105,6 +105,10 @@ final class TestDb extends SupportSQLiteOpenHelper.Callback {
   long bobId;
   long eveId;
 
+  TestDb() {
+    super(1);
+  }
+
   @Override public void onCreate(@NonNull SupportSQLiteDatabase db) {
     db.execSQL("PRAGMA foreign_keys=ON");
 

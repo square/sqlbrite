@@ -15,7 +15,6 @@
  */
 package com.squareup.sqlbrite3;
 
-import android.annotation.TargetApi;
 import android.arch.persistence.db.SupportSQLiteOpenHelper;
 import android.arch.persistence.db.SupportSQLiteOpenHelper.Configuration;
 import android.arch.persistence.db.SupportSQLiteOpenHelper.Factory;
@@ -48,7 +47,6 @@ public final class QueryTest {
   @Before public void setUp() {
     Configuration configuration = Configuration.builder(InstrumentationRegistry.getContext())
         .callback(new TestDb())
-        .version(1)
         .build();
 
     Factory factory = new FrameworkSQLiteOpenHelperFactory();

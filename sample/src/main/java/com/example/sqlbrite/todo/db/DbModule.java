@@ -44,7 +44,6 @@ public final class DbModule {
     Configuration configuration = Configuration.builder(application)
         .name("todo.db")
         .callback(new DbCallback())
-        .version(DbCallback.VERSION)
         .build();
     Factory factory = new FrameworkSQLiteOpenHelperFactory();
     SupportSQLiteOpenHelper helper = factory.create(configuration);
