@@ -88,7 +88,6 @@ public final class BriteDatabaseTest {
   @Before public void setUp() throws IOException {
     Configuration configuration = Configuration.builder(InstrumentationRegistry.getContext())
         .callback(testDb)
-        .version(1)
         .name(dbFolder.newFile().getPath())
         .build();
 

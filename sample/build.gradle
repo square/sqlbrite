@@ -24,7 +24,6 @@ dependencies {
 
 android {
   compileSdkVersion versions.compileSdk
-  buildToolsVersion versions.buildTools
 
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_1_7
