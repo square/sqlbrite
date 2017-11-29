@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+Version 3.0.0 *(2017-11-28)*
+----------------------------
+
+Group ID has changed to `com.squareup.sqlbrite3`.
+
+ * New: Build on top of the Android architecture components Sqlite support library. This allows swapping
+   out the underlying Sqlite implementation to that of your choosing.
+
+Because of the way the Sqlite support library works, there is no interop bridge between 1.x or 2.x to
+this new version. If you haven't fully migrated to 2.x, complete that migration first and then upgrade
+to 3.x all at once.
+
+
 Version 2.0.0 *(2017-07-07)*
 ----------------------------
 

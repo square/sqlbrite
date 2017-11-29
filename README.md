@@ -1,7 +1,7 @@
 SQL Brite
 =========
 
-A lightweight wrapper around `SQLiteOpenHelper` and `ContentResolver` which introduces reactive
+A lightweight wrapper around `SupportSQLiteOpenHelper` and `ContentResolver` which introduces reactive
 stream semantics to queries.
 
 
@@ -15,7 +15,7 @@ Create a `SqlBrite` instance which is an adapter for the library functionality.
 SqlBrite sqlBrite = new SqlBrite.Builder().build();
 ```
 
-Pass a `SQLiteOpenHelper` instance and a `Scheduler` to create a `BriteDatabase`.
+Pass a `SupportSQLiteOpenHelper` instance and a `Scheduler` to create a `BriteDatabase`.
 
 ```java
 BriteDatabase db = sqlBrite.wrapDatabaseHelper(openHelper, Schedulers.io());
@@ -25,7 +25,7 @@ A `Scheduler` is required for a few reasons, but the most important is that quer
 trigger on the thread of your choice. The query can then be run without blocking the main thread or
 the thread which caused the trigger.
 
-The `BriteDatabase.createQuery` method is similar to `SQLiteDatabase.rawQuery` except it takes an
+The `BriteDatabase.createQuery` method is similar to `SupportSQLiteDatabase.query` except it takes an
 additional parameter of table(s) on which to listen for changes. Subscribe to the returned
 `Observable<Query>` which will immediately notify with a `Query` to run.
 
@@ -39,7 +39,7 @@ users.subscribe(new Action1<Query>() {
 });
 ```
 
-Unlike a traditional `rawQuery`, updates to the specified table(s) will trigger additional
+Unlike a traditional `query`, updates to the specified table(s) will trigger additional
 notifications for as long as you remain subscribed to the observable. This means that when you
 insert, update, or delete data, any subscribed queries will update with the new data instantly.
 
@@ -148,17 +148,12 @@ Download
 --------
 
 ```groovy
-compile 'com.squareup.sqlbrite2:sqlbrite:2.0.0'
-```
-
-For the 'interop' module that bridges 1.x and 2.x:
-```groovy
-compile 'com.squareup.sqlbrite2:sqlbrite-interop:2.0.0'
+compile 'com.squareup.sqlbrite3:sqlbrite:3.0.0'
 ```
 
 For the 'kotlin' module that adds extension functions to `Observable<Query>`:
 ```groovy
-compile 'com.squareup.sqlbrite2:sqlbrite-kotlin:2.0.0'
+compile 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.0.0'
 ```
 
 
