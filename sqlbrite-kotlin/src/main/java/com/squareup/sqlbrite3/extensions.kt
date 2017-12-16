@@ -18,6 +18,7 @@
 package com.squareup.sqlbrite3
 
 import android.database.Cursor
+import android.support.annotation.RequiresApi
 import com.squareup.sqlbrite3.SqlBrite.Query
 import io.reactivex.Observable
 import java.util.Optional
@@ -64,6 +65,7 @@ inline fun <T> Observable<Query>.mapToOneOrDefault(default: T, noinline mapper: 
  *
  * @param mapper Maps the current [Cursor] row to `T`. May not return null.
  */
+@RequiresApi(24)
 inline fun <T> Observable<Query>.mapToOptional(noinline mapper: Mapper<T>): Observable<Optional<T>>
     = lift(Query.mapToOptional(mapper))
 
