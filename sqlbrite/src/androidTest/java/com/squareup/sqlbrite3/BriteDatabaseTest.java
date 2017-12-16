@@ -125,6 +125,50 @@ public final class BriteDatabaseTest {
     assertThat(logs).isEmpty();
   }
 
+  @Test public void loggerIndentsSqlForCreateQuery() {
+    db.setLoggingEnabled(true);
+    QueryObservable query = db.createQuery(TABLE_EMPLOYEE, "SELECT\n1");
+    query.subscribe(new Consumer<Query>() {
+      @Override public void accept(Query query) throws Exception {
+        query.run().close();
+      }
+    });
+    assertThat(logs).containsExactly(""
+        + "QUERY\n"
+        + "  tables: [employee]\n"
+        + "  sql: SELECT\n"
+        + "       1");
+  }
+
+  @Test public void loggerIndentsSqlForQuery() {
+    db.setLoggingEnabled(true);
+    db.query("SELECT\n1").close();
+    assertThat(logs).containsExactly(""
+        + "QUERY\n"
+        + "  sql: SELECT\n"
+        + "       1\n"
+        + "  args: []");
+  }
+
+  @Test public void loggerIndentsSqlForExecute() {
+    db.setLoggingEnabled(true);
+    db.execute("PRAGMA\ncompile_options");
+    assertThat(logs).containsExactly(""
+        + "EXECUTE\n"
+        + "  sql: PRAGMA\n"
+        + "       compile_options");
+  }
+
+  @Test public void loggerIndentsSqlForExecuteWithArgs() {
+    db.setLoggingEnabled(true);
+    db.execute("PRAGMA\ncompile_options", new Object[0]);
+    assertThat(logs).containsExactly(""
+        + "EXECUTE\n"
+        + "  sql: PRAGMA\n"
+        + "       compile_options\n"
+        + "  args: []");
+  }
+
   @Test public void closePropagates() {
     db.close();
     assertThat(real.isOpen()).isFalse();
