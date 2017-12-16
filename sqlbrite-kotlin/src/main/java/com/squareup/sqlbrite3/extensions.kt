@@ -19,6 +19,7 @@ package com.squareup.sqlbrite3
 
 import android.database.Cursor
 import android.support.annotation.RequiresApi
+import com.squareup.sqlbrite3.BriteDatabase.Transaction
 import com.squareup.sqlbrite3.SqlBrite.Query
 import io.reactivex.Observable
 import java.util.Optional
@@ -82,3 +83,23 @@ inline fun <T> Observable<Query>.mapToOptional(noinline mapper: Mapper<T>): Obse
  */
 inline fun <T> Observable<Query>.mapToList(noinline mapper: Mapper<T>): Observable<List<T>>
     = lift(Query.mapToList(mapper))
+
+/**
+ * Run the database interactions in `body` inside of a transaction.
+ *
+ * @param exclusive Uses [BriteDatabase.newTransaction] if true, otherwise
+ * [BriteDatabase.newNonExclusiveTransaction].
+ */
+inline fun <T> BriteDatabase.inTransaction(
+    exclusive: Boolean = true,
+    body: BriteDatabase.(Transaction) -> T
+): T {
+  val transaction = if (exclusive) newTransaction() else newNonExclusiveTransaction()
+  try {
+    val result = body(transaction)
+    transaction.markSuccessful()
+    return result
+  } finally {
+    transaction.end()
+  }
+}
