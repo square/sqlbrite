@@ -54,10 +54,8 @@ import static android.database.sqlite.SQLiteDatabase.CONFLICT_NONE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_REPLACE;
 import static android.database.sqlite.SQLiteDatabase.CONFLICT_ROLLBACK;
 import static com.squareup.sqlbrite3.QueryObservable.QUERY_OBSERVABLE;
-import static java.lang.System.nanoTime;
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * A lightweight wrapper around {@link SupportSQLiteOpenHelper} which allows for continuously
@@ -399,12 +397,9 @@ public final class BriteDatabase implements Closeable {
    */
   @CheckResult @WorkerThread
   public Cursor query(@NonNull String sql, @NonNull Object... args) {
-    long startNanos = nanoTime();
     Cursor cursor = getReadableDatabase().query(sql, args);
-    long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
-
     if (logging) {
-      log("QUERY (%sms)\n  sql: %s\n  args: %s", tookMillis, indentSql(sql), Arrays.toString(args));
+      log("QUERY\n  sql: %s\n  args: %s", indentSql(sql), Arrays.toString(args));
     }
 
     return cursor;
@@ -499,7 +494,7 @@ public final class BriteDatabase implements Closeable {
    */
   @WorkerThread
   public void execute(String sql) {
-    if (logging) log("EXECUTE\n  sql: %s", sql);
+    if (logging) log("EXECUTE\n  sql: %s", indentSql(sql));
 
     getWritableDatabase().execSQL(sql);
   }
@@ -515,7 +510,7 @@ public final class BriteDatabase implements Closeable {
    */
   @WorkerThread
   public void execute(String sql, Object... args) {
-    if (logging) log("EXECUTE\n  sql: %s\n  args: %s", sql, Arrays.toString(args));
+    if (logging) log("EXECUTE\n  sql: %s\n  args: %s", indentSql(sql), Arrays.toString(args));
 
     getWritableDatabase().execSQL(sql, args);
   }
@@ -777,13 +772,10 @@ public final class BriteDatabase implements Closeable {
         throw new IllegalStateException("Cannot execute observable query in a transaction.");
       }
 
-      long startNanos = nanoTime();
       Cursor cursor = getReadableDatabase().query(query);
 
       if (logging) {
-        long tookMillis = NANOSECONDS.toMillis(nanoTime() - startNanos);
-        log("QUERY (%sms)\n  tables: %s\n  sql: %s", tookMillis, tables,
-            indentSql(query.getSql()));
+        log("QUERY\n  tables: %s\n  sql: %s", tables, indentSql(query.getSql()));
       }
 
       return cursor;
