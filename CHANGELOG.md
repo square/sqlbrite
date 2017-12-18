@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+Version 3.1.0 *(2017-12-18)*
+----------------------------
+
+ * New: `inTransaction` Kotlin extension function which handles starting, marking successful, and ending
+   a transaction.
+ * New: Embedded lint check which validates the number of arguments passed to `query` and `createQuery`
+   match the number of expected arguments of the SQL statement.
+ * Fix: Properly indent multi-line SQL statements in the logs for `query`.
+
+
 Version 3.0.0 *(2017-11-28)*
 ----------------------------
 
