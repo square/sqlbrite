@@ -1,0 +1,16 @@
+apply plugin: 'kotlin'
+
+dependencies {
+  compileOnly rootProject.ext.kotlinStdLib
+  compileOnly rootProject.ext.lintApi
+
+  testImplementation rootProject.ext.junit
+  testImplementation rootProject.ext.lint
+  testImplementation rootProject.ext.lintTests
+}
+
+jar {
+  manifest {
+    attributes("Lint-Registry-v2": "com.squareup.sqlbrite3.BriteIssueRegistry")
+  }
+}

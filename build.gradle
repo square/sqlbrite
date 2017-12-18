@@ -3,6 +3,7 @@ buildscript {
       'minSdk': 14,
       'compileSdk': 27,
       'kotlin': '1.1.60',
+      'lint': '26.0.1'
   ]
 
   repositories {
@@ -21,6 +22,7 @@ allprojects {
   repositories {
     mavenCentral()
     google()
+    jcenter()
   }
 
   group = GROUP
@@ -50,6 +52,11 @@ ext {
   rxBinding = 'com.jakewharton.rxbinding2:rxbinding:2.0.0'
   junit = 'junit:junit:4.12'
   truth = 'com.google.truth:truth:0.36'
+
+  // Lint dependencies.
+  lintApi = "com.android.tools.lint:lint-api:${versions.lint}"
+  lint = "com.android.tools.lint:lint:${versions.lint}"
+  lintTests = "com.android.tools.lint:lint-tests:${versions.lint}"
 }
 
 configurations {
