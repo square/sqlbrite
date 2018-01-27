@@ -52,9 +52,9 @@ users.subscribe(new Action1<Query>() {
 });
 System.out.println("Queries: " + queries.get()); // Prints 1
 
-db.insert("users", createUser("jw", "Jake Wharton"));
-db.insert("users", createUser("mattp", "Matt Precious"));
-db.insert("users", createUser("strong", "Alec Strong"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("jw", "Jake Wharton"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("mattp", "Matt Precious"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("strong", "Alec Strong"));
 
 System.out.println("Queries: " + queries.get()); // Prints 4
 ```
@@ -73,11 +73,11 @@ Subscription s = users.subscribe(new Action1<Query>() {
 });
 System.out.println("Queries: " + queries.get()); // Prints 1
 
-db.insert("users", createUser("jw", "Jake Wharton"));
-db.insert("users", createUser("mattp", "Matt Precious"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("jw", "Jake Wharton"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("mattp", "Matt Precious"));
 s.unsubscribe();
 
-db.insert("users", createUser("strong", "Alec Strong"));
+db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("strong", "Alec Strong"));
 
 System.out.println("Queries: " + queries.get()); // Prints 3
 ```
@@ -95,9 +95,9 @@ System.out.println("Queries: " + queries.get()); // Prints 1
 
 Transaction transaction = db.newTransaction();
 try {
-  db.insert("users", createUser("jw", "Jake Wharton"));
-  db.insert("users", createUser("mattp", "Matt Precious"));
-  db.insert("users", createUser("strong", "Alec Strong"));
+  db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("jw", "Jake Wharton"));
+  db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("mattp", "Matt Precious"));
+  db.insert("users", SQLiteDatabase.CONFLICT_ABORT, createUser("strong", "Alec Strong"));
   transaction.markSuccessful();
 } finally {
   transaction.end();
@@ -148,12 +148,12 @@ Download
 --------
 
 ```groovy
-compile 'com.squareup.sqlbrite3:sqlbrite:3.1.0'
+implementation 'com.squareup.sqlbrite3:sqlbrite:3.1.0'
 ```
 
 For the 'kotlin' module that adds extension functions to `Observable<Query>`:
 ```groovy
-compile 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.1.0'
+implementation 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.1.0'
 ```
 
 
