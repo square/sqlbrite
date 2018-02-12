@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+Version 3.1.1 *(2018-02-12)*
+----------------------------
+
+ * Fix: Useless `BuildConfig` classes are no longer included.
+ * Fix: Eliminate Java interop checks for Kotlin extensions as they're only for Kotlin consumers and the checks exist in the Java code they delegate to anyway.
+
+
 Version 3.1.0 *(2017-12-18)*
 ----------------------------
 

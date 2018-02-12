@@ -148,12 +148,12 @@ Download
 --------
 
 ```groovy
-implementation 'com.squareup.sqlbrite3:sqlbrite:3.1.0'
+implementation 'com.squareup.sqlbrite3:sqlbrite:3.1.1'
 ```
 
 For the 'kotlin' module that adds extension functions to `Observable<Query>`:
 ```groovy
-implementation 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.1.0'
+implementation 'com.squareup.sqlbrite3:sqlbrite-kotlin:3.1.1'
 ```
 
 
