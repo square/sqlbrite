@@ -22,6 +22,11 @@ android {
     textOutput 'stdout'
     textReport true
   }
+
+  // TODO replace with https://issuetracker.google.com/issues/72050365 once released.
+  libraryVariants.all {
+    it.generateBuildConfig.enabled = false
+  }
 }
 
 apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
