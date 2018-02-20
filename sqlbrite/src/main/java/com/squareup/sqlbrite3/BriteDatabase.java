@@ -406,6 +406,21 @@ public final class BriteDatabase implements Closeable {
   }
 
   /**
+   * Runs the provided {@link SupportSQLiteQuery} and returns a {@link Cursor} over the result set.
+   *
+   * @see SupportSQLiteDatabase#query(SupportSQLiteQuery)
+   */
+  @CheckResult @WorkerThread
+  public Cursor query(@NonNull SupportSQLiteQuery query) {
+    Cursor cursor = getReadableDatabase().query(query);
+    if (logging) {
+      log("QUERY\n  sql: %s", indentSql(query.getSql()));
+    }
+
+    return cursor;
+  }
+
+  /**
    * Insert a row into the specified {@code table} and notify any subscribed queries.
    *
    * @see SupportSQLiteDatabase#insert(String, int, ContentValues)

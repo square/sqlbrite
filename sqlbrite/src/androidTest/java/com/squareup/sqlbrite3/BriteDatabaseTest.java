@@ -1110,6 +1110,46 @@ public final class BriteDatabaseTest {
     }
   }
 
+  @Test public void synchronousQueryWithSupportSQLiteQueryDuringTransaction() {
+    Transaction transaction = db.newTransaction();
+    try {
+      transaction.markSuccessful();
+      assertCursor(db.query(new SimpleSQLiteQuery(SELECT_EMPLOYEES)))
+              .hasRow("alice", "Alice Allison")
+              .hasRow("bob", "Bob Bobberson")
+              .hasRow("eve", "Eve Evenson")
+              .isExhausted();
+    } finally {
+      transaction.end();
+    }
+  }
+
+  @Test public void synchronousQueryWithSupportSQLiteQueryDuringTransactionSeesChanges() {
+    Transaction transaction = db.newTransaction();
+    try {
+      assertCursor(db.query(new SimpleSQLiteQuery(SELECT_EMPLOYEES)))
+              .hasRow("alice", "Alice Allison")
+              .hasRow("bob", "Bob Bobberson")
+              .hasRow("eve", "Eve Evenson")
+              .isExhausted();
+
+      db.insert(TABLE_EMPLOYEE, CONFLICT_NONE, employee("john", "John Johnson"));
+      db.insert(TABLE_EMPLOYEE, CONFLICT_NONE, employee("nick", "Nick Nickers"));
+
+      assertCursor(db.query(new SimpleSQLiteQuery(SELECT_EMPLOYEES)))
+              .hasRow("alice", "Alice Allison")
+              .hasRow("bob", "Bob Bobberson")
+              .hasRow("eve", "Eve Evenson")
+              .hasRow("john", "John Johnson")
+              .hasRow("nick", "Nick Nickers")
+              .isExhausted();
+
+      transaction.markSuccessful();
+    } finally {
+      transaction.end();
+    }
+  }
+
   @Test public void nestedTransactionsOnlyNotifyOnce() {
     db.createQuery(TABLE_EMPLOYEE, SELECT_EMPLOYEES).subscribe(o);
     o.assertCursor()
