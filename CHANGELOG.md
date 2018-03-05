@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+Version 3.2.0 *(2018-03-05)*
+----------------------------
+
+ * New: Add `query(SupportSQLiteQuery)` method for one-off queries.
+
+
 Version 3.1.1 *(2018-02-12)*
 ----------------------------
 
