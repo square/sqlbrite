@@ -8,9 +8,11 @@ stream semantics to queries.
 
 This library is no longer actively developed and is considered complete.
 
-Its features (and far, far more) are now offered by [SQLDelight](https://github.com/square/sqldelight/)
-and its [upgrading guide](https://github.com/square/sqldelight/blob/1.0.0/UPGRADING.md) offers some
+Its database features (and far, far more) are now offered by [SQLDelight](https://github.com/cashapp/sqldelight/)
+and its [upgrading guide](https://github.com/cashapp/sqldelight/blob/1.0.0/UPGRADING.md) offers some
 migration help.
+
+For content provider monitoring please use [Copper](https://github.com/cashapp/copper) instead.
 
 
 
